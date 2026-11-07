@@ -1688,22 +1688,22 @@
           <span class="unit-role">Mêlée</span>
         </button>
 
-        <button class="unit-btn" data-unit="1" title="Tireur à distance - Placez-les derrière les Tanks ! (Coût: 5 Or)">
+        <button class="unit-btn" data-unit="1" title="Tireur à distance - Placez-les derrière les Tanks ! (Coût: 6 Or)">
           <span class="unit-hotkey">2</span>
           <svg class="unit-icon" viewBox="0 0 24 24" fill="#34d399">
             <rect x="3" y="3" width="18" height="18" rx="2"/>
           </svg>
-          <span class="unit-cost">5 🪙</span>
+          <span class="unit-cost">6 🪙</span>
           <span class="unit-name">Archer</span>
           <span class="unit-role">Distance</span>
         </button>
 
-        <button class="unit-btn" data-unit="2" title="Bouclier lourd - Placez-les en 1ère ligne à droite ! (Coût: 10 Or)">
+        <button class="unit-btn" data-unit="2" title="Bouclier lourd - Placez-les en 1ère ligne à droite ! (Coût: 18 Or)">
           <span class="unit-hotkey">3</span>
           <svg class="unit-icon" viewBox="0 0 24 24" fill="#a78bfa">
             <polygon points="12,2 22,9 18,22 6,22 2,9"/>
           </svg>
-          <span class="unit-cost">10 🪙</span>
+          <span class="unit-cost">18 🪙</span>
           <span class="unit-name">Tank</span>
           <span class="unit-role">Bouclier</span>
         </button>
@@ -1714,25 +1714,25 @@
           <svg class="unit-icon" viewBox="0 0 24 24" fill="#fbbf24">
             <polygon points="12,2 22,12 12,22 2,12"/>
           </svg>
-          <span class="unit-cost">15 🪙</span>
+          <span class="unit-cost">45 🪙</span>
           <span class="unit-name">Assassin</span>
           <span class="unit-role">Critique</span>
         </button>
 
-        <button class="unit-btn locked" data-unit="4" title="Artillerie magique à explosion de zone AoE (Débloquer dans la branche Arcanes de l'Arbre de Compétences)">
+        <button class="unit-btn locked" data-unit="4" title="Artillerie d'élite : chaque orbe frappe les 6 ennemis les plus proches de l'impact (Débloquer dans la branche Arcanes de l'Arbre de Compétences)">
           <span class="unit-hotkey">5</span>
           <span class="unit-lock-tag">🔒</span>
           <svg class="unit-icon" viewBox="0 0 24 24" fill="#f472b6">
             <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/>
           </svg>
-          <span class="unit-cost">25 🪙</span>
+          <span class="unit-cost">250 🪙</span>
           <span class="unit-name">Mage AoE</span>
           <span class="unit-role">Explosion</span>
         </button>
       </div>
 
       <div class="spell-bar interactive" id="spellBar">
-        <div class="ink-gauge" title="L'encre se recharge avec le temps et à chaque ennemi vaincu">
+        <div class="ink-gauge" title="L'encre est rare : elle se recharge lentement, et un peu à chaque ennemi vaincu">
           <div class="ink-top"><span>🎨 <span class="btn-word">ENCRE</span></span><span id="inkValue">0</span></div>
           <div class="ink-track"><div id="inkFill" class="ink-fill"></div></div>
         </div>
@@ -1800,7 +1800,7 @@
       </div>
       <div class="duo-body">
         <div class="duo-step" data-step="menu">
-          <p class="duo-intro"><b>Le Général</b> peint son armée comme d'habitude. <b>Le Titan</b> ne dirige qu'une seule unité, immense, avec son propre arbre d'évolution. Les vagues sont 50% plus grosses.</p>
+          <p class="duo-intro"><b>Le Général</b> peint son armée comme d'habitude. <b>Le Titan</b> ne dirige qu'une seule unité, immense, avec son propre arbre d'évolution. Les vagues grossissent jusqu'à doubler, et les ennemis en plus ne rapportent pas d'or : ils nourrissent le Titan.</p>
           <button id="duoLocalBtn" class="btn btn-battle title-btn">🖥️ SUR LE MÊME ÉCRAN</button>
           <button id="duoHostBtn" class="btn btn-primary title-btn">🌐 EN LIGNE : CRÉER UNE SALLE (GÉNÉRAL)</button>
           <button id="duoJoinBtn" class="btn btn-secondary title-btn">🔢 EN LIGNE : REJOINDRE AVEC UN CODE (TITAN)</button>
@@ -1835,7 +1835,7 @@
       </div>
       <div class="titan-tree-body">
         <div class="titan-tree-stage">
-          <svg id="titanTreeSvg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Arbre d'évolution du Titan"></svg>
+          <svg id="titanTreeSvg" viewBox="-70 -60 1140 1120" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Arbre d'évolution du Titan"></svg>
           <button id="titanPreviewBtn" class="titan-preview" aria-label="Voir le Titan et sa compétence Éveil">
             <canvas id="titanPreview" width="300" height="300"></canvas>
             <span id="titanSizeLabel" class="titan-size-label"></span>
@@ -1970,18 +1970,29 @@
     const START_GOLD = 10;
     // Votre armée revient gratuitement à chaque vague : les vagues doivent grandir plus vite que votre or
     const KILL_REWARD_RATE = 0.45;
-    const VICTORY_BONUS_RATE = 0.85;
+    const VICTORY_BONUS_RATE = 0.65;
     const DEFEAT_BONUS_RATE = 0.3;
+    function killRewardDecay(w) {
+      return 1 / (1 + Math.max(0, w - 5) / 10);
+    }
     const ENEMY_HP_GROWTH = 0.17;
     const ENEMY_DMG_GROWTH = 0.13;
+    const MAGE_ORB_TARGETS = 6;
+    const INK_REGEN = 2.0;
+    function enemyHpScaleAt(w) {
+      return 0.82 + (w - 1) * 0.06 + Math.pow(Math.max(0, w - 6), 1.5) * ENEMY_HP_GROWTH;
+    }
+    function enemyDmgScaleAt(w) {
+      return 0.84 + (w - 1) * 0.04 + Math.pow(Math.max(0, w - 6), 1.4) * ENEMY_DMG_GROWTH;
+    }
 
     // Coûts et statistiques de base soigneusement équilibrés pour la synergie inter-armes
     const UNIT_SPECS = [
       { name: "Fantassin", plural: "Fantassins", cost: 2,  hp: 100,  dmg: 14, speed: 78,  range: 20,  rate: 0.74, radius: 6.0,  mass: 1.0,  powerWeight: 2.2,  color: [0.22, 0.74, 0.97, 1.0] },
-      { name: "Archer",    plural: "Archers",    cost: 5,  hp: 64,   dmg: 17, speed: 62,  range: 215, rate: 1.20, radius: 6.2,  mass: 1.0,  powerWeight: 5.5,  color: [0.20, 0.83, 0.60, 1.0] },
-      { name: "Tank",      plural: "Tanks",      cost: 10, hp: 560,  dmg: 23, speed: 52,  range: 24,  rate: 0.92, radius: 9.5,  mass: 5.5,  powerWeight: 11.5, color: [0.65, 0.55, 0.98, 1.0] },
-      { name: "Assassin",  plural: "Assassins",  cost: 15, hp: 155,  dmg: 56, speed: 118, range: 21,  rate: 0.62, radius: 6.8,  mass: 1.5,  powerWeight: 18.0, color: [0.98, 0.75, 0.14, 1.0] },
-      { name: "Mage AoE",  plural: "Mages AoE",  cost: 25, hp: 125,  dmg: 52, speed: 56,  range: 245, rate: 2.00, radius: 7.8,  mass: 1.6,  powerWeight: 30.0, color: [0.96, 0.45, 0.71, 1.0] },
+      { name: "Archer",    plural: "Archers",    cost: 6,  hp: 70,   dmg: 18, speed: 62,  range: 215, rate: 1.20, radius: 6.2,  mass: 1.0,  powerWeight: 6.6,  color: [0.20, 0.83, 0.60, 1.0] },
+      { name: "Tank",      plural: "Tanks",      cost: 18, hp: 950,  dmg: 30, speed: 52,  range: 24,  rate: 0.92, radius: 9.5,  mass: 5.5,  powerWeight: 20.0, color: [0.65, 0.55, 0.98, 1.0] },
+      { name: "Assassin",  plural: "Assassins",  cost: 45, hp: 400,  dmg: 140, speed: 118, range: 21,  rate: 0.62, radius: 6.8,  mass: 1.5,  powerWeight: 50.0, color: [0.98, 0.75, 0.14, 1.0] },
+      { name: "Mage AoE",  plural: "Mages AoE",  cost: 250, hp: 2400, dmg: 300, speed: 56, range: 265, rate: 2.20, radius: 11.0, mass: 6.0,  powerWeight: 270.0, color: [0.96, 0.45, 0.71, 1.0] },
       { name: "Boss",      plural: "Boss",       cost: 80, hp: 2400, dmg: 62, speed: 42,  range: 36,  rate: 1.15, radius: 20.0, mass: 22.0, powerWeight: 95.0, color: [0.98, 0.12, 0.25, 1.0] },
       { name: "Titan",     plural: "Titans",     cost: 0,  hp: 400,  dmg: 30, speed: 95,  range: 30,  rate: 0.65, radius: 26.0, mass: 999.0, powerWeight: 40.0, color: [1.0, 0.82, 0.32, 1.0] }
     ];
@@ -2856,7 +2867,7 @@
       duo: false,
       ink: 0,
       maxInk: 100,
-      inkRegen: 4,
+      inkRegen: 2,
       activeSpell: null,
       paused: false,
       waveStats: { kills: 0, lost: 0, startArmy: 0, startClock: 0, inkUsed: { fire: 0, ice: 0, heal: 0 } },
@@ -2891,6 +2902,8 @@
         spellCostMult: 1.0,
         mageAoeRadiusMult: 1.0,
         mageAoeDmgMult: 1.0,
+        lineHpMult: 1.0, lineArmor: 0, lastStand: 0, meleeLifesteal: 0, volleyChance: 0,
+        mageHpMult: 1.0, mageTargets: 6, victoryGoldMult: 1.0, spellChargeMult: 1.0, spellExtraTargets: 0,
         interestRate: 0.0,
         interestCap: 0
       }
@@ -2907,7 +2920,7 @@
         baseCost: 25,
         costScale: 1.55,
         level: 0,
-        maxLevel: 5,
+        maxLevel: 8,
         parentId: null,
         reqLevel: 0
       },
@@ -2922,7 +2935,7 @@
         baseCost: 30,
         costScale: 1.50,
         level: 0,
-        maxLevel: 5,
+        maxLevel: 8,
         parentId: 'root_cmd',
         reqLevel: 1
       },
@@ -2976,7 +2989,7 @@
         baseCost: 30,
         costScale: 1.50,
         level: 0,
-        maxLevel: 5,
+        maxLevel: 8,
         parentId: 'root_cmd',
         reqLevel: 1
       },
@@ -2999,7 +3012,7 @@
         tier: 2,
         name: "🔶 Débloquer : Assassin",
         desc: "Débloque l'unité d'élite Assassin (Losange) : flanqueur ultra-rapide infligeant d'énormes dégâts.",
-        baseCost: 75,
+        baseCost: 150,
         costScale: 1.0,
         level: 0,
         maxLevel: 1,
@@ -3030,7 +3043,7 @@
         baseCost: 35,
         costScale: 1.55,
         level: 0,
-        maxLevel: 5,
+        maxLevel: 6,
         parentId: 'root_cmd',
         reqLevel: 1
       },
@@ -3052,8 +3065,8 @@
         branch: 'arcane',
         tier: 2,
         name: "⭐ Débloquer : Mage AoE",
-        desc: "Débloque le Mage AoE (Étoile) : artillerie lançant des orbes explosifs dévastateurs sur les groupes ennemis.",
-        baseCost: 120,
+        desc: "Débloque le Mage AoE (Étoile), artillerie d'élite à 250 Or. Chaque orbe frappe les 6 ennemis les plus proches de l'impact.",
+        baseCost: 600,
         costScale: 1.0,
         level: 0,
         maxLevel: 1,
@@ -3065,7 +3078,7 @@
         branch: 'arcane',
         tier: 3,
         name: "💥 Nova Cataclysmique",
-        desc: "Augmente le rayon d'explosion AoE des Mages de +25% et leurs dégâts de zone de +20% par niveau.",
+        desc: "Explosion des Mages : +25% de rayon, +20% de dégâts et 2 cibles de plus par niveau.",
         baseCost: 70,
         costScale: 1.70,
         level: 0,
@@ -3118,7 +3131,7 @@
         branch: 'grimoire',
         tier: 3,
         name: "🎨 Palette Profonde",
-        desc: "+25 d'Encre maximum et +1,5 d'Encre par seconde par niveau pour peindre davantage de sorts en combat.",
+        desc: "+20 d'Encre maximum et +0,6 d'Encre par seconde par niveau pour peindre davantage de sorts en combat.",
         baseCost: 50,
         costScale: 1.60,
         level: 0,
@@ -3131,7 +3144,7 @@
         branch: 'grimoire',
         tier: 3,
         name: "✒️ Trait Épais",
-        desc: "Les traits de tous les sorts sont 20% plus larges et coûtent 15% d'encre en moins par niveau.",
+        desc: "Les traits de tous les sorts sont 20% plus larges et coûtent 10% d'encre en moins par niveau.",
         baseCost: 60,
         costScale: 1.7,
         level: 0,
@@ -3146,11 +3159,11 @@
         branch: 'eco',
         tier: 1,
         name: "🪙 Butin de Guerre",
-        desc: "Augmente l'Or gagné sur chaque ennemi éliminé et les récompenses de fin de vague de +20% par niveau.",
+        desc: "Augmente l'Or gagné sur chaque ennemi éliminé et les récompenses de fin de vague de +12% par niveau.",
         baseCost: 30,
         costScale: 1.50,
         level: 0,
-        maxLevel: 5,
+        maxLevel: 6,
         parentId: 'root_cmd',
         reqLevel: 1
       },
@@ -3163,7 +3176,7 @@
         baseCost: 40,
         costScale: 1.55,
         level: 0,
-        maxLevel: 4,
+        maxLevel: 6,
         parentId: 'eco_1',
         reqLevel: 1
       },
@@ -3179,6 +3192,55 @@
         maxLevel: 3,
         parentId: 'eco_2',
         reqLevel: 1
+      },
+      // Paliers profonds : de quoi investir jusqu'aux armées titanesques
+      {
+        id: 'bastion_5', branch: 'bastion', tier: 3,
+        name: "🧱 Formation Serrée",
+        desc: "Fantassins : +20% PV et 6% de dégâts subis en moins par niveau.",
+        baseCost: 90, costScale: 1.6, level: 0, maxLevel: 5, parentId: 'bastion_4', reqLevel: 1
+      },
+      {
+        id: 'bastion_6', branch: 'bastion', tier: 4,
+        name: "🗿 Dernier Rempart",
+        desc: "Toute unité sous 35% de ses PV subit 12% de dégâts en moins par niveau.",
+        baseCost: 260, costScale: 1.75, level: 0, maxLevel: 3, parentId: 'bastion_3', reqLevel: 1
+      },
+      {
+        id: 'assault_5', branch: 'assault', tier: 3,
+        name: "🩸 Soif de Sang",
+        desc: "Fantassins et Assassins récupèrent 5% des dégâts qu'ils infligent au corps à corps, par niveau.",
+        baseCost: 110, costScale: 1.65, level: 0, maxLevel: 4, parentId: 'assault_2', reqLevel: 1
+      },
+      {
+        id: 'assault_6', branch: 'assault', tier: 4,
+        name: "🎖️ Vétérans",
+        desc: "+6% PV et +6% dégâts pour toute l'armée par niveau. Un investissement sans fin pour les grandes guerres.",
+        baseCost: 400, costScale: 1.45, level: 0, maxLevel: 12, parentId: 'assault_4', reqLevel: 1
+      },
+      {
+        id: 'arcane_6', branch: 'arcane', tier: 3,
+        name: "🏹 Volée",
+        desc: "Archers : 12% de chance par niveau de tirer une seconde flèche.",
+        baseCost: 95, costScale: 1.6, level: 0, maxLevel: 4, parentId: 'arcane_2', reqLevel: 1
+      },
+      {
+        id: 'arcane_7', branch: 'arcane', tier: 4,
+        name: "🌠 Archimage",
+        desc: "Mages : +25% PV et 1 cible de plus par orbe, par niveau.",
+        baseCost: 500, costScale: 1.7, level: 0, maxLevel: 4, parentId: 'arcane_4', reqLevel: 1
+      },
+      {
+        id: 'eco_4', branch: 'eco', tier: 4,
+        name: "📯 Conscription",
+        desc: "+40 unités de capacité d'armée et +8% d'Or des victoires par niveau.",
+        baseCost: 220, costScale: 1.55, level: 0, maxLevel: 6, parentId: 'eco_3', reqLevel: 1
+      },
+      {
+        id: 'sorts_5', branch: 'grimoire', tier: 4,
+        name: "🖌️ Pigments Denses",
+        desc: "Chaque touche de sort dure 40% plus longtemps avant de s'épuiser et touche 2 unités de plus à la fois, par niveau.",
+        baseCost: 180, costScale: 1.7, level: 0, maxLevel: 3, parentId: 'arcane_5', reqLevel: 1
       }
     ];
 
@@ -3216,12 +3278,30 @@
       const e2 = skillMap['eco_2'].level;
       const e3 = skillMap['eco_3'].level;
 
-      state.mods.globalHpMult = (1.0 + cmdLv * 0.10) * Math.pow(1.18, b1);
-      state.mods.globalDmgMult = (1.0 + cmdLv * 0.10) * Math.pow(1.16, a1);
+      const b5 = skillMap['bastion_5'].level;
+      const b6 = skillMap['bastion_6'].level;
+      const a5 = skillMap['assault_5'].level;
+      const a6 = skillMap['assault_6'].level;
+      const c6 = skillMap['arcane_6'].level;
+      const c7 = skillMap['arcane_7'].level;
+      const e4 = skillMap['eco_4'].level;
+      const s5 = skillMap['sorts_5'].level;
+      state.mods.globalHpMult = (1.0 + cmdLv * 0.10) * Math.pow(1.18, b1) * Math.pow(1.06, a6);
+      state.mods.globalDmgMult = (1.0 + cmdLv * 0.10) * Math.pow(1.16, a1) * Math.pow(1.06, a6);
+      state.mods.lineHpMult = 1 + b5 * 0.20;
+      state.mods.lineArmor = b5 * 0.06;
+      state.mods.lastStand = b6 * 0.12;
+      state.mods.meleeLifesteal = a5 * 0.05;
+      state.mods.volleyChance = c6 * 0.12;
+      state.mods.mageHpMult = 1 + c7 * 0.25;
+      state.mods.mageTargets = MAGE_ORB_TARGETS + skillMap['arcane_4'].level * 2 + c7;
+      state.mods.victoryGoldMult = 1 + e4 * 0.08;
+      state.mods.spellChargeMult = 1 + s5 * 0.4;
+      state.mods.spellExtraTargets = s5 * 2;
       state.mods.speedMult = Math.pow(1.10, a2);
       state.mods.fireRateMult = Math.pow(1.14, c1);
       state.mods.rangeMult = 1.0 + c1 * 0.08;
-      state.mods.goldMult = Math.pow(1.20, e1);
+      state.mods.goldMult = 1 + e1 * 0.12;
 
       state.mods.tankHpMult = Math.pow(1.25, b2);
       state.mods.tankArmorReduction = Math.min(0.60, b2 * 0.18);
@@ -3250,16 +3330,16 @@
       state.mods.healMult = 1 + Math.max(0, healLevel - 1) * 0.5;
       state.mods.healLifeMult = 1 + Math.max(0, healLevel - 1) * 0.25;
       state.mods.spellRadiusMult = 1 + thickLevel * 0.2;
-      state.mods.spellCostMult = 1 - thickLevel * 0.15;
+      state.mods.spellCostMult = 1 - thickLevel * 0.10;
       updateSpellButtons();
 
       const c5 = skillMap['arcane_5'].level;
-      state.maxInk = 100 + c5 * 25;
-      state.inkRegen = 4 + c5 * 1.5;
+      state.maxInk = 100 + c5 * 20;
+      state.inkRegen = INK_REGEN + c5 * 0.6;
 
       // L'armée grandit avec les vagues, de plus en plus vite : c'est tout l'intérêt de la vue dézoomée
       const wavesDone = state.wave - 1;
-      state.maxPopulation = Math.round(state.basePopulation + wavesDone * 30 + wavesDone * wavesDone * 0.6 + e2 * 120);
+      state.maxPopulation = Math.round(state.basePopulation + wavesDone * 30 + wavesDone * wavesDone * 0.6 + e2 * 120 + e4 * 40);
       state.mods.interestRate = e3 * 0.10;
       state.mods.interestCap = e3 * 150;
 
@@ -3299,6 +3379,8 @@
         let rngVal = spec.range;
 
         if (uType === TYPE_TANK) hpVal *= state.mods.tankHpMult;
+        if (uType === TYPE_SWARMER) hpVal *= state.mods.lineHpMult;
+        if (uType === TYPE_MAGE) hpVal *= state.mods.mageHpMult;
         if (uType === TYPE_ARCHER) {
           dmgVal *= state.mods.archerDmgMult;
           rngVal *= state.mods.rangeMult;
@@ -3318,8 +3400,10 @@
         // Courbe d'équilibrage lisse selon la vague et la difficulté choisie
         const diff = DIFFICULTY_PRESETS[state.difficulty];
         const w = Math.max(1, state.wave);
-        const enemyWaveScaleHp = (0.82 + (w - 1) * 0.06 + Math.pow(Math.max(0, w - 6), 1.5) * ENEMY_HP_GROWTH) * diff.hpMult;
-        const enemyWaveScaleDmg = (0.84 + (w - 1) * 0.04 + Math.pow(Math.max(0, w - 6), 1.4) * ENEMY_DMG_GROWTH) * diff.dmgMult;
+        // En duo, l'aura du Titan renforce l'armée : les ennemis s'aguerrissent en retour
+        const duoVeterancy = duoStatMult(w);
+        const enemyWaveScaleHp = enemyHpScaleAt(w) * diff.hpMult * duoVeterancy;
+        const enemyWaveScaleDmg = enemyDmgScaleAt(w) * diff.dmgMult * duoVeterancy;
 
         hp[idx] = spec.hp * enemyWaveScaleHp;
         max_hp[idx] = hp[idx];
@@ -3630,13 +3714,16 @@
         enemyCount--;
         state.waveStats.kills++;
         creditTitanKill(uType);
-        state.ink = Math.min(state.maxInk, state.ink + (uType === TYPE_BOSS ? INK_PER_BOSS : INK_PER_KILL));
+        gainKillInk(uType === TYPE_BOSS ? INK_PER_BOSS : INK_PER_KILL);
         const diff = DIFFICULTY_PRESETS[state.difficulty];
-        const baseReward = Math.max(1, UNIT_SPECS[uType].cost * KILL_REWARD_RATE);
-        const reward = Math.max(1, Math.round(baseReward * state.mods.goldMult * diff.goldMult));
+        // En duo, les ennemis supplémentaires nourrissent le Titan, pas le trésor du Général
+        // La prime baisse au fil des vagues : l'armée survivante s'accumule déjà d'une vague à l'autre
+        const baseReward = UNIT_SPECS[uType].cost * KILL_REWARD_RATE * killRewardDecay(state.wave) / duoBudgetMult(state.wave);
+        // Arrondi aléatoire : une petite prime reste juste en moyenne, sans plancher à 1 Or
+        const reward = Math.floor(baseReward * state.mods.goldMult * diff.goldMult + Math.random());
         state.gold += reward;
         state.waveGoldEarned += reward;
-        if (Math.random() < 0.28 || uType === TYPE_BOSS) {
+        if (reward > 0 && (Math.random() < 0.28 || uType === TYPE_BOSS)) {
           spawnParticle(pos_x[idx], pos_y[idx], `+${reward} 🪙`, '#fbbf24');
         }
       }
@@ -3725,7 +3812,7 @@
 
       const diff = DIFFICULTY_PRESETS[state.difficulty];
       // Budget progressif garantissant que les vagues 1-2 sont très accessibles
-      const waveBudget = Math.round(waveBaseBudget(waveNum) * diff.budgetMult * (state.duo ? DUO_BUDGET_MULT : 1));
+      const waveBudget = Math.round(waveBaseBudget(waveNum) * diff.budgetMult * duoBudgetMult(waveNum));
 
       const counts = [0, 0, 0, 0, 0, 0];
       let remainingBudget = waveBudget;
@@ -3770,7 +3857,7 @@
         counts[TYPE_TANK] * 22 * 20 +
         counts[TYPE_SWARMER] * 17 * 16 +
         counts[TYPE_ARCHER] * 20 * 18 +
-        counts[TYPE_MAGE] * 24 * 24;
+        counts[TYPE_MAGE] * 30 * 30;
       updateArena();
       loadMapForWave(waveNum);
 
@@ -3828,7 +3915,7 @@
       deployColumns(TYPE_ARCHER, counts[TYPE_ARCHER], 20, 18);
 
       // 6. Artillerie de Mages AoE en fond de ligne
-      deployColumns(TYPE_MAGE, counts[TYPE_MAGE], 24, 24);
+      deployColumns(TYPE_MAGE, counts[TYPE_MAGE], 30, 30);
 
       const formation = pickEnemyFormation(waveNum);
       applyEnemyFormation(formation, centerY, usableHeight);
@@ -3860,9 +3947,19 @@
       // Compétences défensives du joueur : Mur de Titan & Armure d'Épines
       if (victimType === TYPE_TITAN) finalDmg *= (1.0 - titan.armor);
 
+      if (victimType === TYPE_TITAN && !isMelee) finalDmg *= (1.0 - titan.rangedArmor);
+
       if (victimTeam === 0) {
         if (victimType === TYPE_TANK && state.mods.tankArmorReduction > 0) {
           finalDmg *= (1.0 - state.mods.tankArmorReduction);
+        }
+        if (victimType === TYPE_SWARMER && state.mods.lineArmor > 0) finalDmg *= (1.0 - state.mods.lineArmor);
+        if (state.mods.lastStand > 0 && victimType !== TYPE_TITAN && hp[victimIdx] < max_hp[victimIdx] * 0.35) {
+          finalDmg *= (1.0 - state.mods.lastStand);
+        }
+        if (titan.bannerReduction > 0 && victimType !== TYPE_TITAN && titan.idx >= 0) {
+          const bdSq = (pos_x[victimIdx] - pos_x[titan.idx]) ** 2 + (pos_y[victimIdx] - pos_y[titan.idx]) ** 2;
+          if (bdSq <= titan.auraRadius * titan.auraRadius) finalDmg *= (1.0 - titan.bannerReduction);
         }
         if (isMelee && attackerIdx >= 0 && active[attackerIdx] === 1 && state.mods.thornsReflectPct > 0) {
           if (victimType === TYPE_TANK || victimType === TYPE_SWARMER) {
@@ -3884,6 +3981,13 @@
               spawnParticle(pos_x[victimIdx], pos_y[victimIdx] - 8, 'CRIT!', '#f59e0b');
             }
           }
+        }
+      }
+
+      if (isMelee && attackerIdx >= 0 && team[attackerIdx] === 0 && state.mods.meleeLifesteal > 0 && active[attackerIdx] === 1) {
+        const attType = shape_type[attackerIdx];
+        if (attType === TYPE_SWARMER || attType === TYPE_ASSASSIN) {
+          hp[attackerIdx] = Math.min(max_hp[attackerIdx], hp[attackerIdx] + Math.min(finalDmg, hp[victimIdx]) * state.mods.meleeLifesteal);
         }
       }
 
@@ -4123,6 +4227,12 @@
               const pSpd = 290.0 * (myTeam === 0 ? state.mods.archerProjSpeedMult : 1.0);
               const invD = 1.0 / (dist || 1);
               spawnProjectile(px, py, dx * invD * pSpd, dy * invD * pSpd, damage[i] * titanAuraMultiplier(i, myTeam), myTeam, 0);
+              if (myTeam === 0 && state.mods.volleyChance > 0 && Math.random() < state.mods.volleyChance) {
+                const spread = 0.06;
+                const vx2 = (dx * Math.cos(spread) - dy * Math.sin(spread)) * invD * pSpd;
+                const vy2 = (dx * Math.sin(spread) + dy * Math.cos(spread)) * invD * pSpd;
+                spawnProjectile(px, py, vx2, vy2, damage[i] * titanAuraMultiplier(i, myTeam), myTeam, 0);
+              }
               if (Math.random() < 0.08) playSfx('shoot');
             } else if (uType === TYPE_MAGE) {
               const pSpd = 215.0;
@@ -4220,35 +4330,65 @@
       }
     }
 
+    // Une orbe ne traverse pas une armée : elle frappe les plus proches de l'impact, puis s'éteint
     function triggerAoEExplosion(ex, ey, aoeRadius, dmg, pTeam) {
       addRing(ex, ey, aoeRadius, pTeam === 0 ? '#f472b6' : '#fb7185');
-      if (pTeam === 1 && titan.idx >= 0) {
-        const reach = aoeRadius + radius[titan.idx];
-        if ((pos_x[titan.idx] - ex) ** 2 + (pos_y[titan.idx] - ey) ** 2 <= reach * reach) {
-          applyDamageToUnit(-1, titan.idx, dmg, false);
-        }
+      const maxTargets = pTeam === 0 ? state.mods.mageTargets : MAGE_ORB_TARGETS;
+      const n = collectNearest(ex, ey, aoeRadius, 1 - pTeam, maxTargets, true);
+      for (let k = 0; k < n; k++) applyDamageToUnit(-1, zoneIdx[k], dmg, false);
+      playSfx('hit');
+    }
+
+    // Sélection des N unités les plus proches d'un point, sans allocation
+    const ZONE_MAX = 64;
+    const zoneIdx = new Int32Array(ZONE_MAX);
+    const zoneKey = new Float32Array(ZONE_MAX);
+    let zoneCount = 0;
+
+    function insertNearest(u, key, k) {
+      let pos;
+      if (zoneCount < k) {
+        pos = zoneCount++;
+      } else if (key >= zoneKey[k - 1]) {
+        return;
+      } else {
+        pos = k - 1;
       }
+      while (pos > 0 && zoneKey[pos - 1] > key) {
+        zoneIdx[pos] = zoneIdx[pos - 1];
+        zoneKey[pos] = zoneKey[pos - 1];
+        pos--;
+      }
+      zoneIdx[pos] = u;
+      zoneKey[pos] = key;
+    }
 
-      const minCellX = Math.max(0, Math.floor((ex - aoeRadius) / SPATIAL_CELL_SIZE));
-      const maxCellX = Math.min(gridCols - 1, Math.floor((ex + aoeRadius) / SPATIAL_CELL_SIZE));
-      const minCellY = Math.max(0, Math.floor((ey - aoeRadius) / SPATIAL_CELL_SIZE));
-      const maxCellY = Math.min(gridRows - 1, Math.floor((ey + aoeRadius) / SPATIAL_CELL_SIZE));
-
-      for (let cy = minCellY; cy <= maxCellY; cy++) {
-        for (let cx = minCellX; cx <= maxCellX; cx++) {
-          let curr = gridHead[cy * gridCols + cx];
+    function collectNearest(cx, cy, r, wantTeam, maxCount, withTitan) {
+      zoneCount = 0;
+      const k = Math.min(ZONE_MAX, Math.floor(maxCount));
+      if (k <= 0) return 0;
+      const minCellX = Math.max(0, Math.floor((cx - r) / SPATIAL_CELL_SIZE));
+      const maxCellX = Math.min(gridCols - 1, Math.floor((cx + r) / SPATIAL_CELL_SIZE));
+      const minCellY = Math.max(0, Math.floor((cy - r) / SPATIAL_CELL_SIZE));
+      const maxCellY = Math.min(gridRows - 1, Math.floor((cy + r) / SPATIAL_CELL_SIZE));
+      const rSq = r * r;
+      for (let gy = minCellY; gy <= maxCellY; gy++) {
+        for (let gx = minCellX; gx <= maxCellX; gx++) {
+          let curr = gridHead[gy * gridCols + gx];
           while (curr !== -1) {
-            if (team[curr] !== pTeam && shape_type[curr] !== TYPE_TITAN) {
-              const dSq = (pos_x[curr] - ex) ** 2 + (pos_y[curr] - ey) ** 2;
-              if (dSq <= aoeRadius * aoeRadius) {
-                applyDamageToUnit(-1, curr, dmg, false);
-              }
+            if (active[curr] === 1 && team[curr] === wantTeam && shape_type[curr] !== TYPE_TITAN) {
+              const dSq = (pos_x[curr] - cx) ** 2 + (pos_y[curr] - cy) ** 2;
+              if (dSq <= rSq) insertNearest(curr, dSq, k);
             }
             curr = entityNext[curr];
           }
         }
       }
-      playSfx('hit');
+      if (withTitan && titan.idx >= 0 && team[titan.idx] === wantTeam) {
+        const d = Math.max(0, Math.hypot(pos_x[titan.idx] - cx, pos_y[titan.idx] - cy) - radius[titan.idx]);
+        if (d <= r) insertNearest(titan.idx, d * d, k);
+      }
+      return zoneCount;
     }
 
     // =========================================================================
@@ -4579,9 +4719,10 @@
     // LES SORTS : on peint aussi pendant le combat
     // =========================================================================
     const SPELLS = {
-      fire: { label: 'FEU', cost: 3.0, life: 4.0, fill: 'rgba(251, 146, 60, 1)', paint: 'rgb(251, 120, 40)' },
-      ice:  { label: 'GIVRE', cost: 2.5, life: 5.5, fill: 'rgba(103, 232, 249, 1)', paint: 'rgb(103, 232, 249)' },
-      heal: { label: 'SOIN', cost: 3.0, life: 4.5, fill: 'rgba(74, 222, 128, 1)', paint: 'rgb(74, 222, 128)' }
+      // targets : unités touchées à la fois ; charge : touches avant que la peinture ne s'épuise
+      fire: { label: 'FEU', cost: 7.0, life: 4.0, targets: 5, charge: 70, fill: 'rgba(251, 146, 60, 1)', paint: 'rgb(251, 120, 40)' },
+      ice:  { label: 'GIVRE', cost: 6.0, life: 5.5, targets: 8, charge: 110, fill: 'rgba(103, 232, 249, 1)', paint: 'rgb(103, 232, 249)' },
+      heal: { label: 'SOIN', cost: 7.0, life: 4.5, targets: 6, charge: 80, fill: 'rgba(74, 222, 128, 1)', paint: 'rgb(74, 222, 128)' }
     };
     const SPELL_NODE = { fire: 'sorts_1', ice: 'sorts_2', heal: 'sorts_3' };
 
@@ -4614,15 +4755,27 @@
     const FIRE_BOSS_DPS_PCT = 0.035;
     const HEAL_PS_PCT = 0.10;
     const ICE_SLOW_FACTOR = 0.35;
-    const INK_PER_KILL = 0.7;
-    const INK_PER_BOSS = 22;
-    const INK_START_RATIO = 0.4;
+    const INK_PER_KILL = 0.2;
+    const INK_PER_BOSS = 12;
+    const INK_KILL_CAP = 0.6;
+    const INK_START_RATIO = 0.5;
+    const TITAN_HEAL_EFFICIENCY = 0.4;
 
     const spellDabs = [];
     let simClock = 0;
     let spellTickId = 1;
     let spellTickTimer = 0;
     let spellStroke = null;
+
+    // L'encre des victimes a un plafond par bataille : les grandes vagues ne remplissent pas la barre à l'infini
+    let killInkGained = 0;
+    function gainKillInk(amount) {
+      const room = state.maxInk * INK_KILL_CAP - killInkGained;
+      if (room <= 0) return;
+      const gain = Math.min(room, amount);
+      killInkGained += gain;
+      state.ink = Math.min(state.maxInk, state.ink + gain);
+    }
 
     function spellDabRadius() {
       return SPELL_DAB_RADIUS * Math.sqrt(arena.scale) * state.mods.spellRadiusMult;
@@ -4664,7 +4817,8 @@
       const r = spellDabRadius();
       const life = spellLife(key);
       if (spellDabs.length >= SPELL_MAX_DABS) spellDabs.shift();
-      spellDabs.push({ x, y, r, key, life, maxLife: life, seed: Math.random() * 6.28 });
+      const charge = spell.charge * state.mods.spellChargeMult;
+      spellDabs.push({ x, y, r, key, life, maxLife: life, charge, maxCharge: charge, seed: Math.random() * 6.28 });
       netEmit('d', Math.round(x), Math.round(y), Math.round(r), key, +life.toFixed(2));
       paintBlob(x, y, r * 0.42, spell.paint, 0.34);
       return true;
@@ -4697,38 +4851,52 @@
       }
     }
 
+    // Chaque touche de peinture ne prend que les unités les plus proches de son centre,
+    // et chaque unité touchée consomme une part de sa charge : un trait s'épuise dans les premiers rangs.
     function applySpellDab(dab) {
       const minCellX = Math.max(0, Math.floor((dab.x - dab.r) / SPATIAL_CELL_SIZE));
       const maxCellX = Math.min(gridCols - 1, Math.floor((dab.x + dab.r) / SPATIAL_CELL_SIZE));
       const minCellY = Math.max(0, Math.floor((dab.y - dab.r) / SPATIAL_CELL_SIZE));
       const maxCellY = Math.min(gridRows - 1, Math.floor((dab.y + dab.r) / SPATIAL_CELL_SIZE));
       const radiusSq = dab.r * dab.r;
+      const wantTeam = dab.key === 'heal' ? 0 : 1;
+      const k = Math.min(ZONE_MAX, SPELLS[dab.key].targets + state.mods.spellExtraTargets, Math.ceil(dab.charge));
+      zoneCount = 0;
+      if (k <= 0) return;
 
       for (let cy = minCellY; cy <= maxCellY; cy++) {
         for (let cx = minCellX; cx <= maxCellX; cx++) {
           let curr = gridHead[cy * gridCols + cx];
           while (curr !== -1) {
-            const next = entityNext[curr];
-            if (active[curr] === 1) {
-              const dSq = (pos_x[curr] - dab.x) ** 2 + (pos_y[curr] - dab.y) ** 2;
-              if (dSq <= radiusSq) {
-                // Une unité dans plusieurs touches d'un même trait n'est affectée qu'une fois par impulsion
-                if (dab.key === 'fire' && team[curr] === 1 && fire_tick[curr] !== spellTickId) {
-                  fire_tick[curr] = spellTickId;
-                  const pct = shape_type[curr] === TYPE_BOSS ? FIRE_BOSS_DPS_PCT : FIRE_DPS_PCT;
-                  applyDamageToUnit(-1, curr, max_hp[curr] * pct * state.mods.fireDamageMult * SPELL_TICK, false);
-                } else if (dab.key === 'ice' && team[curr] === 1) {
-                  applySlow(curr, simClock + SPELL_TICK * 1.6, state.mods.iceSlowFactor);
-                } else if (dab.key === 'heal' && team[curr] === 0 && heal_tick[curr] !== spellTickId) {
-                  heal_tick[curr] = spellTickId;
-                  hp[curr] = Math.min(max_hp[curr], hp[curr] + max_hp[curr] * HEAL_PS_PCT * state.mods.healMult * SPELL_TICK);
-                }
+            if (active[curr] === 1 && team[curr] === wantTeam) {
+              // Une unité dans plusieurs touches d'un même trait n'est affectée qu'une fois par impulsion
+              const already = (dab.key === 'fire' && fire_tick[curr] === spellTickId) || (dab.key === 'heal' && heal_tick[curr] === spellTickId);
+              if (!already) {
+                const dSq = (pos_x[curr] - dab.x) ** 2 + (pos_y[curr] - dab.y) ** 2;
+                if (dSq <= radiusSq) insertNearest(curr, dSq, k);
               }
             }
-            curr = next;
+            curr = entityNext[curr];
           }
         }
       }
+
+      for (let n = 0; n < zoneCount; n++) {
+        const u = zoneIdx[n];
+        if (dab.key === 'fire') {
+          fire_tick[u] = spellTickId;
+          const pct = shape_type[u] === TYPE_BOSS ? FIRE_BOSS_DPS_PCT : FIRE_DPS_PCT;
+          applyDamageToUnit(-1, u, max_hp[u] * pct * state.mods.fireDamageMult * SPELL_TICK, false);
+        } else if (dab.key === 'ice') {
+          applySlow(u, simClock + SPELL_TICK * 1.6, state.mods.iceSlowFactor);
+        } else {
+          heal_tick[u] = spellTickId;
+          const efficiency = shape_type[u] === TYPE_TITAN ? TITAN_HEAL_EFFICIENCY : 1;
+          hp[u] = Math.min(max_hp[u], hp[u] + max_hp[u] * HEAL_PS_PCT * state.mods.healMult * efficiency * SPELL_TICK);
+        }
+      }
+      dab.charge -= zoneCount;
+      if (dab.charge <= 0) dab.life = Math.min(dab.life, 0.35);
     }
 
     function spellSystem(dt) {
@@ -4753,7 +4921,7 @@
 
     function renderSpellDabs(zoom) {
       for (const dab of spellDabs) {
-        const fade = Math.min(1, dab.life / 0.6);
+        const fade = Math.min(1, dab.life / 0.6) * (dab.maxCharge ? 0.35 + 0.65 * Math.max(0, dab.charge) / dab.maxCharge : 1);
         const flicker = dab.key === 'fire' ? 0.8 + 0.2 * Math.sin(simClock * 14 + dab.seed) : 1;
         overlayCtx.globalAlpha = 0.17 * fade * flicker;
         overlayCtx.fillStyle = SPELLS[dab.key].fill;
@@ -5334,7 +5502,7 @@
       if (outcome === 'victory') {
         const survivalRatio = stats.startArmy > 0 ? survivors / stats.startArmy : 0;
         stars = survivalRatio >= 0.6 ? 3 : (survivalRatio >= 0.3 ? 2 : 1);
-        bonusGold = Math.max(1, Math.round(waveBaseBudget(state.wave) * VICTORY_BONUS_RATE / (1 + state.wave / 15) * state.mods.goldMult * diff.goldMult));
+        bonusGold = Math.max(1, Math.round(waveBaseBudget(state.wave) * VICTORY_BONUS_RATE / (1 + state.wave / 15) * state.mods.goldMult * state.mods.victoryGoldMult * diff.goldMult));
         starGold = Math.round(bonusGold * (stars === 3 ? 0.2 : (stars === 2 ? 0.1 : 0)));
         if (state.mods.interestRate > 0) {
           interestGold = Math.min(state.mods.interestCap, Math.round(state.gold * state.mods.interestRate));
@@ -5654,6 +5822,7 @@
       SKILL_TREE_NODES.forEach((n) => { skills[n.id] = n.level; });
       storage.set(STORAGE_SAVE, JSON.stringify({
         version: 1,
+        balance: SAVE_BALANCE,
         gold: state.gold,
         wave: state.wave,
         difficulty: state.difficulty,
@@ -5700,6 +5869,11 @@
       launchBtn.className = "btn btn-battle";
     }
 
+    // Les prix des unités ont changé : une armée d'une ancienne partie est rendue en or, au prix payé
+    const SAVE_BALANCE = 2;
+    const OLD_UNIT_COSTS = [2, 5, 10, 15, 25];
+    let convertedArmyGold = 0;
+
     function restoreGame(data) {
       clearAllEntities();
       state.inBattle = false;
@@ -5715,6 +5889,12 @@
       SKILL_TREE_NODES.forEach((n) => { n.level = Math.min(n.maxLevel, (data.skills && data.skills[n.id]) || 0); });
       recalculateSkillModifiers();
       savedFormation = (data.formation || []).map((u) => ({ x: u[0], y: u[1], type: u[2] }));
+      convertedArmyGold = 0;
+      if ((data.balance || 1) < SAVE_BALANCE) {
+        for (const unit of savedFormation) convertedArmyGold += OLD_UNIT_COSTS[unit.type] || 0;
+        state.gold += convertedArmyGold;
+        savedFormation = [];
+      }
       for (const unit of savedFormation) spawnUnit(unit.x, unit.y, 0, unit.type);
       setDuoMode(!!data.duo);
       if (data.titan) {
@@ -5829,8 +6009,8 @@
         ? "Un doigt hors de la zone déplace la vue. Deux doigts déplacent et zooment partout. AUTO recadre."
         : "La molette zoome. Glissez hors de la zone, ou utilisez les flèches, pour déplacer la vue. F recadre.";
       const spellHelp = isTouchDevice
-        ? "Débloquez et renforcez les sorts dans le Grimoire de guerre de l'arbre de compétences. En combat, choisissez Feu, Givre ou Soin, puis tracez avec le doigt."
-        : "Débloquez et renforcez les sorts dans le Grimoire de guerre de l'arbre de compétences. En combat, choisissez Feu, Givre ou Soin (touches 1, 2, 3), puis tracez au clic gauche. Espace met le jeu en pause : vous pouvez peindre pendant la pause.";
+        ? "Débloquez et renforcez les sorts dans le Grimoire de guerre de l'arbre de compétences. En combat, choisissez Feu, Givre ou Soin, puis tracez avec le doigt. L'encre est rare, et chaque touche s'épuise sur les premiers ennemis qu'elle atteint."
+        : "Débloquez et renforcez les sorts dans le Grimoire de guerre de l'arbre de compétences. En combat, choisissez Feu, Givre ou Soin (touches 1, 2, 3), puis tracez au clic gauche. Espace met le jeu en pause : vous pouvez peindre pendant la pause. L'encre est rare, et chaque touche s'épuise sur les premiers ennemis qu'elle atteint.";
       const cards = [
         ['🖌️ Peignez votre armée', paintHelp],
         ['📐 Anticipez', "Observez la formation ennemie annoncée en haut : coin, croissant, pinces… Placez les Tanks devant, les Archers et les Mages derrière, puis ajustez avec le pronostic."],
@@ -5883,6 +6063,10 @@
         const save = readSave();
         if (save) restoreGame(save);
         gameStarted = true;
+        if (convertedArmyGold > 0) {
+          markSaveDirty();
+          setTimeout(() => showNotification(`⚖️ NOUVEAUX PRIX : VOTRE ARMÉE VOUS EST RENDUE EN OR (+${convertedArmyGold} 🪙). REPEIGNEZ-LA !`, 'victory'), 400);
+        }
       }
       hideTitle();
     });
@@ -5976,7 +6160,7 @@
       deployCorps(TYPE_TANK, totalGold * 0.30, 24, 22, 0.22);
       deployCorps(TYPE_SWARMER, totalGold * 0.24, 17, 16, 0.26);
       deployCorps(TYPE_ARCHER, totalGold * (hasMages ? 0.20 : 0.30), 20, 18, hasMages ? 0.26 : 0.4);
-      if (hasMages) deployCorps(TYPE_MAGE, totalGold * 0.14, 26, 26, 0.2);
+      if (hasMages) deployCorps(TYPE_MAGE, totalGold * 0.14, 30, 30, 0.2);
 
       // 6. L'or restant renforce l'arrière-garde
       deployCorps(TYPE_SWARMER, state.gold, 17, 16);
@@ -6301,7 +6485,7 @@
         header.textContent = bDef.title;
         col.appendChild(header);
 
-        for (let tier = 1; tier <= 3; tier++) {
+        for (let tier = 1; tier <= 4; tier++) {
           const nodesInTier = SKILL_TREE_NODES.filter(n => n.branch === bDef.key && n.tier === tier);
           if (nodesInTier.length > 0) {
             const tierRow = document.createElement('div');
@@ -6434,7 +6618,13 @@
     // LE TITAN : une seule unité, un corps qui évolue, un arbre entièrement à lui
     // Chaque compétence fait grandir le Titan et ajoute une partie visible à son corps.
     // =========================================================================
-    const DUO_BUDGET_MULT = 1.5;
+    // En duo, les vagues grossissent vite : deux joueurs, deux fois plus d'ennemis à terme
+    function duoStatMult(w) {
+      return state.duo ? 1 + Math.min(1.2, Math.max(0, w - 12) * 0.08) : 1;
+    }
+    function duoBudgetMult(w) {
+      return state.duo ? Math.min(3.2, 1.2 + 0.12 * (Math.max(1, w) - 1)) : 1;
+    }
     const TITAN_SOULS_PER_KILL = 0.05;
     const TITAN_KILL_SOULS_BASE = 5;
     const TITAN_BRANCHES = [
@@ -6448,31 +6638,41 @@
     const TITAN_TREE = [
       { id: 'eveil', branch: null, ring: 0, offset: 0, icon: '✨', name: 'Éveil', desc: "Le Titan ouvre les yeux. Ouvre les cinq voies de son évolution.", cost: 3, scale: 1, max: 1, parent: null },
 
-      { id: 'coeur_1', branch: 'coeur', ring: 1, offset: 0, icon: '🪨', name: 'Cœur de Pierre', desc: "+30% de PV maximum par niveau. Un cœur incandescent s'allume dans son torse.", cost: 4, scale: 1.5, max: 5, parent: 'eveil' },
+      { id: 'coeur_1', branch: 'coeur', ring: 1, offset: 0, icon: '🪨', name: 'Cœur de Pierre', desc: "+30% de PV maximum par niveau. Un cœur incandescent s'allume dans son torse.", cost: 4, scale: 1.45, max: 8, parent: 'eveil' },
       { id: 'coeur_2', branch: 'coeur', ring: 2, offset: -1, icon: '🩸', name: "Sang d'Encre", desc: "Régénère 1,5% de ses PV par seconde par niveau.", cost: 10, scale: 1.6, max: 3, parent: 'coeur_1' },
       { id: 'coeur_3', branch: 'coeur', ring: 2, offset: 1, icon: '🐢', name: 'Carapace', desc: "Réduit tous les dégâts subis de 12% par niveau. Des plaques couvrent son corps.", cost: 10, scale: 1.6, max: 3, parent: 'coeur_1' },
       { id: 'coeur_4', branch: 'coeur', ring: 3, offset: 0, icon: '🔥', name: 'Seconde Vie', desc: "Une fois par bataille, le Titan se relève à 50% de ses PV quand il tombe.", cost: 40, scale: 1, max: 1, parent: 'coeur_3' },
 
-      { id: 'poing_1', branch: 'poing', ring: 1, offset: 0, icon: '🥊', name: "Poings d'Airain", desc: "+30% de dégâts par niveau. Ses bras s'épaississent.", cost: 4, scale: 1.5, max: 5, parent: 'eveil' },
+      { id: 'poing_1', branch: 'poing', ring: 1, offset: 0, icon: '🥊', name: "Poings d'Airain", desc: "+30% de dégâts par niveau. Ses bras s'épaississent.", cost: 4, scale: 1.45, max: 8, parent: 'eveil' },
       { id: 'poing_2', branch: 'poing', ring: 2, offset: -1, icon: '🌀', name: 'Balayage', desc: "Chaque coup touche 3 ennemis de plus, avec 25% d'allonge en plus par niveau.", cost: 8, scale: 1.6, max: 3, parent: 'poing_1' },
-      { id: 'poing_3', branch: 'poing', ring: 2, offset: 1, icon: '💥', name: 'Onde de Choc', desc: "Capacité (J) : frappe le sol, blesse et repousse tout ce qui l'entoure. Plus large à chaque niveau.", cost: 12, scale: 1.6, max: 3, parent: 'poing_1' },
-      { id: 'poing_4', branch: 'poing', ring: 3, offset: 1, icon: '🌋', name: 'Séisme', desc: "L'Onde de Choc ralentit les survivants et se recharge 30% plus vite.", cost: 45, scale: 1, max: 1, parent: 'poing_3' },
+      { id: 'poing_3', branch: 'poing', ring: 2, offset: 1, icon: '💥', name: 'Onde de Choc', desc: "Capacité (J) : frappe le sol et repousse les ennemis les plus proches (8, puis 4 de plus par niveau).", cost: 12, scale: 1.6, max: 3, parent: 'poing_1' },
+      { id: 'poing_4', branch: 'poing', ring: 3, offset: 1.3, icon: '🌋', name: 'Séisme', desc: "L'Onde de Choc ralentit les survivants et se recharge 30% plus vite.", cost: 45, scale: 1, max: 1, parent: 'poing_3' },
 
-      { id: 'oeil_1', branch: 'oeil', ring: 1, offset: 0, icon: '🔆', name: 'Regard Ardent', desc: "Capacité (K) : un rayon brûle tout sur sa ligne. Plus puissant à chaque niveau.", cost: 6, scale: 1.6, max: 3, parent: 'eveil' },
-      { id: 'oeil_2', branch: 'oeil', ring: 2, offset: -1, icon: '🎯', name: 'Œil Perçant', desc: "Le rayon porte 25% plus loin et brûle 25% plus fort par niveau.", cost: 12, scale: 1.6, max: 3, parent: 'oeil_1' },
+      { id: 'oeil_1', branch: 'oeil', ring: 1, offset: 0, icon: '🔆', name: 'Regard Ardent', desc: "Capacité (K) : un rayon brûle les 3 premiers ennemis sur sa ligne, puis s'épuise. Plus puissant à chaque niveau.", cost: 6, scale: 1.6, max: 5, parent: 'eveil' },
+      { id: 'oeil_2', branch: 'oeil', ring: 2, offset: -1, icon: '🎯', name: 'Œil Perçant', desc: "Le rayon porte 25% plus loin, brûle 25% plus fort et perce 1 ennemi de plus par niveau.", cost: 12, scale: 1.6, max: 3, parent: 'oeil_1' },
       { id: 'oeil_3', branch: 'oeil', ring: 2, offset: 1, icon: '🔱', name: 'Prisme', desc: "Le rayon se divise : +2 faisceaux par niveau. Le Titan gagne de nouveaux yeux.", cost: 20, scale: 1.7, max: 2, parent: 'oeil_1' },
       { id: 'oeil_4', branch: 'oeil', ring: 3, offset: 0, icon: '🗿', name: 'Regard Pétrifiant', desc: "Tout ce que le rayon touche est fortement ralenti.", cost: 45, scale: 1, max: 1, parent: 'oeil_2' },
 
-      { id: 'jambe_1', branch: 'jambe', ring: 1, offset: 0, icon: '👣', name: 'Foulée', desc: "+15% de vitesse par niveau.", cost: 4, scale: 1.5, max: 5, parent: 'eveil' },
-      { id: 'jambe_2', branch: 'jambe', ring: 2, offset: -1, icon: '🐘', name: 'Piétinement', desc: "Le Titan écrase ce qu'il foule : dégâts continus sous ses pieds, plus forts à chaque niveau.", cost: 9, scale: 1.6, max: 3, parent: 'jambe_1' },
-      { id: 'jambe_3', branch: 'jambe', ring: 2, offset: 1, icon: '🐂', name: 'Charge', desc: "Capacité (L) : fonce droit devant et renverse tout sur son passage.", cost: 12, scale: 1.6, max: 3, parent: 'jambe_1' },
+      { id: 'jambe_1', branch: 'jambe', ring: 1, offset: 0, icon: '👣', name: 'Foulée', desc: "+15% de vitesse par niveau.", cost: 4, scale: 1.5, max: 6, parent: 'eveil' },
+      { id: 'jambe_2', branch: 'jambe', ring: 2, offset: -1, icon: '🐘', name: 'Piétinement', desc: "Le Titan écrase les 4 ennemis les plus proches de ses pieds : dégâts continus, plus forts à chaque niveau.", cost: 9, scale: 1.6, max: 3, parent: 'jambe_1' },
+      { id: 'jambe_3', branch: 'jambe', ring: 2, offset: 1, icon: '🐂', name: 'Charge', desc: "Capacité (L) : fonce droit devant et renverse les premiers ennemis sur son passage, jusqu'à épuisement de l'élan.", cost: 12, scale: 1.6, max: 3, parent: 'jambe_1' },
       { id: 'jambe_4', branch: 'jambe', ring: 3, offset: 0, icon: '🗻', name: 'Colosse', desc: "La taille du Titan augmente de 30% par niveau. Il devient une montagne.", cost: 50, scale: 2, max: 2, parent: 'jambe_2' },
 
-      { id: 'couronne_1', branch: 'couronne', ring: 1, offset: 0, icon: '🎖️', name: 'Aura de Guerre', desc: "Les alliés dans son aura infligent +12% de dégâts par niveau. Une couronne pousse sur sa tête.", cost: 5, scale: 1.5, max: 4, parent: 'eveil' },
+      { id: 'couronne_1', branch: 'couronne', ring: 1, offset: 0, icon: '🎖️', name: 'Aura de Guerre', desc: "Les alliés dans son aura infligent +12% de dégâts par niveau. Une couronne pousse sur sa tête.", cost: 5, scale: 1.5, max: 6, parent: 'eveil' },
       { id: 'couronne_2', branch: 'couronne', ring: 2, offset: -1, icon: '💚', name: 'Bénédiction', desc: "L'aura soigne les alliés de 1,5% de leurs PV par seconde par niveau.", cost: 10, scale: 1.6, max: 3, parent: 'couronne_1' },
       { id: 'couronne_3', branch: 'couronne', ring: 2, offset: 1, icon: '😱', name: 'Terreur', desc: "Les ennemis dans l'aura sont ralentis.", cost: 16, scale: 1.8, max: 2, parent: 'couronne_1' },
-      { id: 'couronne_4', branch: 'couronne', ring: 3, offset: 1, icon: '💰', name: 'Tribut', desc: "Chaque ennemi tué par le Titan rapporte de l'or et de l'encre au Général.", cost: 25, scale: 1.7, max: 3, parent: 'couronne_3' },
-      { id: 'couronne_5', branch: 'couronne', ring: 3, offset: -1, icon: '📯', name: 'Cri de Ralliement', desc: "Capacité (I) : soigne de 35% toute l'armée autour du Titan.", cost: 30, scale: 1, max: 1, parent: 'couronne_2' }
+      { id: 'couronne_4', branch: 'couronne', ring: 3, offset: 1.3, icon: '💰', name: 'Tribut', desc: "Chaque ennemi tué par le Titan rapporte de l'or et de l'encre au Général.", cost: 25, scale: 1.7, max: 3, parent: 'couronne_3' },
+      { id: 'couronne_5', branch: 'couronne', ring: 3, offset: -1.3, icon: '📯', name: 'Cri de Ralliement', desc: "Capacité (I) : soigne de 35% toute l'armée autour du Titan.", cost: 30, scale: 1, max: 1, parent: 'couronne_2' },
+      // Le corps à corps reste tenable : vol de vie, cadence, résistance aux tirs
+      { id: 'coeur_5', branch: 'coeur', ring: 3, offset: -1.4, icon: '🧛', name: 'Festin de Guerre', desc: "Récupère 6% des dégâts de ses coups et de son piétinement par niveau.", cost: 18, scale: 1.7, max: 3, parent: 'coeur_2' },
+      { id: 'coeur_6', branch: 'coeur', ring: 3, offset: 1.4, icon: '🪨', name: "Peau d'Obsidienne", desc: "Réduit de 20% par niveau les dégâts des flèches et des orbes.", cost: 20, scale: 1.7, max: 3, parent: 'coeur_3' },
+      { id: 'poing_5', branch: 'poing', ring: 3, offset: -1.3, icon: '🔨', name: 'Frénésie', desc: "+15% de vitesse de frappe par niveau.", cost: 16, scale: 1.6, max: 4, parent: 'poing_2' },
+      { id: 'poing_6', branch: 'poing', ring: 3, offset: 0, icon: '🦍', name: 'Brise-Rangs', desc: "Ses coups projettent les ennemis en arrière et les étourdissent un instant.", cost: 30, scale: 1.8, max: 2, parent: 'poing_2' },
+      { id: 'oeil_5', branch: 'oeil', ring: 3, offset: 1.3, icon: '🌅', name: 'Regard Persistant', desc: "Le rayon dure 0,6 s de plus et se recharge 15% plus vite par niveau.", cost: 22, scale: 1.7, max: 2, parent: 'oeil_3' },
+      { id: 'oeil_6', branch: 'oeil', ring: 3, offset: -1.3, icon: '🏹', name: 'Œil du Chasseur', desc: "Le rayon inflige +40% de dégâts aux Tanks, Mages et Boss par niveau.", cost: 18, scale: 1.7, max: 3, parent: 'oeil_2' },
+      { id: 'jambe_5', branch: 'jambe', ring: 3, offset: 1.3, icon: '🌪️', name: 'Ruée', desc: "La Charge se recharge 20% plus vite et son élan renverse 50% d'ennemis de plus par niveau.", cost: 20, scale: 1.7, max: 2, parent: 'jambe_3' },
+      { id: 'jambe_6', branch: 'jambe', ring: 3, offset: -1.3, icon: '🦶', name: 'Pas Sismique', desc: "Le piétinement écrase 4 ennemis de plus par niveau et les ralentit.", cost: 18, scale: 1.7, max: 2, parent: 'jambe_2' },
+      { id: 'couronne_6', branch: 'couronne', ring: 3, offset: 0, icon: '🏰', name: 'Étendard', desc: "Les alliés dans l'aura subissent 8% de dégâts en moins par niveau.", cost: 22, scale: 1.7, max: 3, parent: 'couronne_1' }
     ];
     const titanNodeMap = {};
     TITAN_TREE.forEach((n) => { titanNodeMap[n.id] = n; });
@@ -6495,6 +6695,7 @@
       chargeTime: 0, chargeX: 1, chargeY: 0,
       usedSecondLife: false, fell: false,
       damage: 30, reach: 40, targets: 3, armor: 0, regen: 0, auraRadius: 0, auraDamage: 0,
+      lifesteal: 0, rangedArmor: 0, bannerReduction: 0, chargeMomentum: 0, beamEnds: [],
       stats: { hp: 0, maxHp: 1, radius: 26 }, selectedNode: 'eveil'
     };
     let titanStrikeActive = false;
@@ -6523,11 +6724,17 @@
       const w = Math.max(1, state.wave);
       const allLevels = TITAN_TREE.reduce((sum, n) => sum + titanLevel(n.id), 0);
       const colossus = 1 + titanLevel('jambe_4') * 0.3;
-      const size = (UNIT_SPECS[TYPE_TITAN].radius + allLevels * 2.4) * colossus;
+      const growth = Math.min(allLevels, 30) * 2.4 + Math.max(0, allLevels - 30) * 1.2;
+      const size = (UNIT_SPECS[TYPE_TITAN].radius + growth) * colossus;
       const reachBonus = 1 + titanLevel('poing_2') * 0.25;
+      // Le Titan suit la montée en puissance des ennemis, pour pouvoir rester au contact
       return {
-        maxHp: 300 * (1 + (w - 1) * 0.22) * (1 + titanLevel('coeur_1') * 0.3),
-        damage: 22 * (1 + (w - 1) * 0.16) * (1 + titanLevel('poing_1') * 0.3),
+        maxHp: 300 * (enemyDmgScaleAt(w) / enemyDmgScaleAt(1)) * (1 + titanLevel('coeur_1') * 0.3) * Math.sqrt(size / UNIT_SPECS[TYPE_TITAN].radius),
+        damage: 22 * (enemyHpScaleAt(w) / enemyHpScaleAt(1)) * (1 + titanLevel('poing_1') * 0.3),
+        rate: UNIT_SPECS[TYPE_TITAN].rate / (1 + titanLevel('poing_5') * 0.15),
+        lifesteal: titanLevel('coeur_5') * 0.06,
+        rangedArmor: Math.min(0.6, titanLevel('coeur_6') * 0.2),
+        bannerReduction: titanLevel('couronne_6') * 0.08,
         speed: UNIT_SPECS[TYPE_TITAN].speed * Math.pow(1.15, titanLevel('jambe_1')),
         radius: size,
         reach: (size * 0.5 + 24) * reachBonus,
@@ -6546,7 +6753,7 @@
       hp[idx] = state.inBattle ? s.maxHp * ratio : s.maxHp;
       damage[idx] = s.damage;
       attack_range[idx] = s.reach;
-      max_cooldown[idx] = UNIT_SPECS[TYPE_TITAN].rate;
+      max_cooldown[idx] = s.rate;
       speed[idx] = s.speed;
       radius[idx] = s.radius;
       mass[idx] = UNIT_SPECS[TYPE_TITAN].mass;
@@ -6556,6 +6763,9 @@
       titan.regen = s.regen;
       titan.auraRadius = s.auraRadius;
       titan.auraDamage = s.auraDamage;
+      titan.lifesteal = s.lifesteal;
+      titan.rangedArmor = s.rangedArmor;
+      titan.bannerReduction = s.bannerReduction;
     }
 
     function spawnTitan() {
@@ -6627,7 +6837,7 @@
         const tribute = titanLevel('couronne_4');
         if (tribute > 0) {
           state.gold += Math.round(UNIT_SPECS[uType].cost * 0.2 * tribute);
-          state.ink = Math.min(state.maxInk, state.ink + 0.3 * tribute);
+          gainKillInk(0.05 * tribute);
         }
       }
     }
@@ -6660,10 +6870,15 @@
       }
     }
 
-    function titanHit(victim, amount) {
+    function titanHit(victim, amount, feeds) {
+      const before = hp[victim];
       titanStrikeActive = true;
       applyDamageToUnit(-1, victim, amount, false);
       titanStrikeActive = false;
+      if (feeds && titan.lifesteal > 0 && titan.idx >= 0) {
+        const dealt = Math.max(0, before - Math.max(0, hp[victim]));
+        hp[titan.idx] = Math.min(max_hp[titan.idx], hp[titan.idx] + dealt * titan.lifesteal);
+      }
     }
 
     function nearestEnemyToTitan() {
@@ -6773,15 +6988,18 @@
       titan.strikeTimer -= dt;
       titan.swing = Math.max(0, titan.swing - dt * 3.5);
       if (titan.strikeTimer <= 0) {
-        let left = titan.targets;
-        let didHit = false;
-        forEachUnitInRadius(x, y, r + titan.reach, (u) => {
-          if (team[u] !== 1) return true;
-          titanHit(u, damage[i]);
-          didHit = true;
-          left--;
-          return left > 0;
-        });
+        const struck = collectNearest(x, y, r + titan.reach, 1, titan.targets, false);
+        const didHit = struck > 0;
+        const breaker = titanLevel('poing_6');
+        for (let k = 0; k < struck; k++) {
+          const u = zoneIdx[k];
+          titanHit(u, damage[i], true);
+          if (breaker > 0 && active[u] === 1) {
+            const d = Math.hypot(pos_x[u] - x, pos_y[u] - y) || 1;
+            moveUnit(u, ((pos_x[u] - x) / d) * 22 * breaker, ((pos_y[u] - y) / d) * 22 * breaker);
+            applySlow(u, simClock + 0.35 * breaker, 0.1);
+          }
+        }
         if (didHit) {
           titan.strikeTimer = max_cooldown[i];
           titan.swing = 1;
@@ -6797,11 +7015,14 @@
         titan.tickTimer += 0.25;
         const trample = titanLevel('jambe_2');
         if (trample > 0) {
-          const trampleDamage = damage[i] * 0.35 * trample * 0.25 * 4;
-          forEachUnitInRadius(x, y, r * 1.08 + 10, (u) => {
-            if (team[u] === 1) titanHit(u, trampleDamage * 0.25);
-            return true;
-          });
+          const trampleDamage = damage[i] * 0.35 * trample * 0.25;
+          const seismicSteps = titanLevel('jambe_6');
+          const crushed = collectNearest(x, y, r * 1.08 + 10, 1, 4 + seismicSteps * 4, false);
+          for (let k = 0; k < crushed; k++) {
+            const u = zoneIdx[k];
+            if (seismicSteps > 0) applySlow(u, simClock + 0.5, ICE_SLOW_FACTOR);
+            titanHit(u, trampleDamage, true);
+          }
         }
         const blessing = titanLevel('couronne_2');
         const terror = titanLevel('couronne_3');
@@ -6835,19 +7056,20 @@
         }
       }
 
-      // Charge : renverse tout sur son passage
-      if (titan.chargeTime > 0) {
+      // Charge : l'élan s'use sur chaque ennemi renversé, puis le Titan s'arrête
+      if (titan.chargeTime > 0 && titan.chargeMomentum > 0) {
         const hitDamage = damage[i] * 0.6 * (1 + titanLevel('jambe_3') * 0.5);
-        forEachUnitInRadius(x, y, r * 1.15 + 10, (u) => {
-          if (team[u] === 1) {
-            titanHit(u, hitDamage * dt * 8);
-            if (active[u] === 1) {
-              const d = Math.hypot(pos_x[u] - x, pos_y[u] - y) || 1;
-              moveUnit(u, ((pos_x[u] - x) / d) * 260 * dt, ((pos_y[u] - y) / d) * 260 * dt);
-            }
+        const hit = collectNearest(x, y, r * 1.15 + 10, 1, Math.min(12, Math.ceil(titan.chargeMomentum)), false);
+        for (let k = 0; k < hit; k++) {
+          const u = zoneIdx[k];
+          titanHit(u, hitDamage * dt * 8);
+          if (active[u] === 1) {
+            const d = Math.hypot(pos_x[u] - x, pos_y[u] - y) || 1;
+            moveUnit(u, ((pos_x[u] - x) / d) * 260 * dt, ((pos_y[u] - y) / d) * 260 * dt);
           }
-          return true;
-        });
+        }
+        titan.chargeMomentum -= hit * dt * 8;
+        if (titan.chargeMomentum <= 0) titan.chargeTime = Math.min(titan.chargeTime, 0.08);
       }
     }
 
@@ -6862,6 +7084,8 @@
       return (r * 3.4 + 280) * (1 + titanLevel('oeil_2') * 0.25);
     }
 
+    // Chaque faisceau s'arrête dans les premiers ennemis qu'il rencontre
+    const TITAN_BEAM_PIERCE = 3;
     function applyTitanBeam(i) {
       const r = radius[i];
       const x = pos_x[i];
@@ -6869,24 +7093,32 @@
       const length = titanBeamLength(r);
       const width = Math.max(26, r * 0.42);
       const tickDamage = damage[i] * 4.5 * (1 + titanLevel('oeil_1') * 0.4) * (1 + titanLevel('oeil_2') * 0.25) * 0.1;
+      const hunter = 1 + titanLevel('oeil_6') * 0.4;
       const petrify = titanLevel('oeil_4') > 0;
-      const rays = titanBeamRays().map((a) => [Math.cos(a), Math.sin(a)]);
-      forEachUnitInRadius(x, y, length, (u) => {
-        if (team[u] !== 1) return true;
-        const ux = pos_x[u] - x;
-        const uy = pos_y[u] - y;
-        for (const [cx, cy] of rays) {
+      const pierce = TITAN_BEAM_PIERCE + titanLevel('oeil_2');
+      const rays = titanBeamRays();
+      titan.beamEnds.length = rays.length;
+      for (let k = 0; k < rays.length; k++) {
+        const cx = Math.cos(rays[k]);
+        const cy = Math.sin(rays[k]);
+        zoneCount = 0;
+        forEachUnitInRadius(x, y, length, (u) => {
+          if (team[u] !== 1) return true;
+          const ux = pos_x[u] - x;
+          const uy = pos_y[u] - y;
           const along = ux * cx + uy * cy;
-          if (along < 0) continue;
-          const side = Math.abs(ux * cy - uy * cx);
-          if (side <= width) {
-            if (petrify) applySlow(u, simClock + 1.2, ICE_SLOW_FACTOR);
-            titanHit(u, tickDamage);
-            break;
-          }
+          if (along >= 0 && Math.abs(ux * cy - uy * cx) <= width + radius[u]) insertNearest(u, along, pierce);
+          return true;
+        });
+        titan.beamEnds[k] = zoneCount >= pierce ? zoneKey[zoneCount - 1] + 12 : length;
+        const hits = zoneCount;
+        const victims = Array.from(zoneIdx.subarray(0, hits));
+        for (const u of victims) {
+          const elite = shape_type[u] === TYPE_TANK || shape_type[u] === TYPE_MAGE || shape_type[u] === TYPE_BOSS;
+          if (petrify) applySlow(u, simClock + 1.2, ICE_SLOW_FACTOR);
+          titanHit(u, tickDamage * (elite ? hunter : 1));
         }
-        return true;
-      });
+      }
     }
 
     function useTitanAbility(key) {
@@ -6909,31 +7141,36 @@
         titan.cooldowns.slam = ability.cooldown * (seism ? 0.7 : 1);
         const blast = r * 2.2 + 70 + level * 50;
         const blastDamage = damage[i] * 3 * (1 + level * 0.5);
+        const slamTargets = 4 + level * 4;
         addRing(x, y, blast, '#fbbf24', 0.5);
         addRing(x, y, blast * 0.6, '#ffffff', 0.35);
         addShake(10 + level * 2);
         paintBlob(x, y, r * 0.55, 'rgb(251, 191, 36)', 0.28);
         netEmit('b', Math.round(x), Math.round(y), Math.round(r * 0.55), 'rgb(251, 191, 36)');
-        forEachUnitInRadius(x, y, blast, (u) => {
-          if (team[u] !== 1) return true;
+        const shaken = collectNearest(x, y, blast, 1, slamTargets, false);
+        const victims = Array.from(zoneIdx.subarray(0, shaken));
+        for (const u of victims) {
           titanHit(u, blastDamage);
           if (active[u] === 1) {
             const d = Math.hypot(pos_x[u] - x, pos_y[u] - y) || 1;
             moveUnit(u, ((pos_x[u] - x) / d) * 55, ((pos_y[u] - y) / d) * 55);
             if (seism) applySlow(u, simClock + 3, ICE_SLOW_FACTOR);
           }
-          return true;
-        });
+        }
       } else if (key === 'beam') {
-        titan.cooldowns.beam = ability.cooldown;
-        titan.beamTime = 1.7;
+        const lingering = titanLevel('oeil_5');
+        titan.cooldowns.beam = ability.cooldown * (1 - lingering * 0.15);
+        titan.beamTime = 1.7 + lingering * 0.6;
+        titan.beamEnds = [];
         titan.beamTickTimer = 0;
         const target = nearestEnemyToTitan();
         titan.beamAngle = target >= 0 ? Math.atan2(pos_y[target] - y, pos_x[target] - x) : titan.facing;
         addShake(5);
       } else if (key === 'charge') {
-        titan.cooldowns.charge = ability.cooldown;
+        const rush = titanLevel('jambe_5');
+        titan.cooldowns.charge = ability.cooldown * (1 - rush * 0.2);
         titan.chargeTime = 0.55 + level * 0.1;
+        titan.chargeMomentum = (10 + level * 6) * (1 + rush * 0.5);
         let dirX = titan.inputX;
         let dirY = titan.inputY;
         if (dirX === 0 && dirY === 0) {
@@ -7113,9 +7350,12 @@
         const width = Math.max(26, r * 0.42);
         ctx.save();
         ctx.lineCap = 'round';
-        for (const a of titanBeamRays()) {
-          const ex = x + Math.cos(a) * length;
-          const ey = y + Math.sin(a) * length;
+        const beamRays = titanBeamRays();
+        for (let k = 0; k < beamRays.length; k++) {
+          const a = beamRays[k];
+          const reachK = Math.min(length, titan.beamEnds[k] || length);
+          const ex = x + Math.cos(a) * reachK;
+          const ey = y + Math.sin(a) * reachK;
           ctx.strokeStyle = 'rgba(56, 189, 248, 0.38)';
           ctx.lineWidth = width * 2;
           ctx.beginPath();
@@ -7233,8 +7473,8 @@
       TITAN_BRANCHES.forEach((branch, index) => {
         const angle = (-90 + index * 72) * Math.PI / 180;
         const label = document.createElementNS(NS, 'text');
-        label.setAttribute('x', 500 + Math.cos(angle) * 486);
-        label.setAttribute('y', 500 + Math.sin(angle) * 486 + (Math.sin(angle) < -0.5 ? 18 : 7));
+        label.setAttribute('x', 500 + Math.cos(angle) * 530);
+        label.setAttribute('y', 500 + Math.sin(angle) * 530 + (Math.sin(angle) < -0.5 ? 18 : 7));
         label.setAttribute('text-anchor', 'middle');
         label.setAttribute('class', 'titan-branch-label');
         label.setAttribute('fill', branch.color);
@@ -7722,7 +7962,7 @@
         titan: {
           souls: titan.souls, levels: titan.levels, facing: titan.facing, swing: titan.swing,
           hp: t >= 0 ? hp[t] : 0, maxHp: t >= 0 ? max_hp[t] : 1, radius: t >= 0 ? radius[t] : 26,
-          cooldowns: titan.cooldowns, beamTime: titan.beamTime, beamAngle: titan.beamAngle,
+          cooldowns: titan.cooldowns, beamTime: titan.beamTime, beamAngle: titan.beamAngle, beamEnds: titan.beamEnds.map(Math.round),
           auraRadius: titan.auraRadius, auraDamage: titan.auraDamage
         }
       };
@@ -7916,6 +8156,7 @@
       titan.cooldowns = t.cooldowns;
       titan.beamTime = t.beamTime;
       titan.beamAngle = t.beamAngle;
+      titan.beamEnds = t.beamEnds || [];
       titan.auraRadius = t.auraRadius;
       titan.auraDamage = t.auraDamage;
       net.titanRadius = t.radius;
@@ -8561,6 +8802,8 @@
       for (let s = 0; s < 5; s++) {
         const btn = document.querySelector(`.unit-btn[data-unit="${s}"]`);
         if (btn) {
+          const costTag = btn.querySelector('.unit-cost');
+          if (costTag) costTag.textContent = `${UNIT_SPECS[s].cost} 🪙`;
           if (state.unlockedUnits[s]) btn.classList.remove('locked');
           else btn.classList.add('locked');
         }
@@ -8616,6 +8859,7 @@
         state.waveGoldEarned = 0;
         pendingWaveOutcome = null;
         state.ink = state.maxInk * INK_START_RATIO;
+        killInkGained = 0;
         lastInkLabel = -1;
         updateSpellButtons();
         state.waveStats = { kills: 0, lost: 0, startArmy: playerCount, startClock: simClock, inkUsed: { fire: 0, ice: 0, heal: 0 } };
