@@ -571,7 +571,7 @@
       border: 1px solid rgba(56, 189, 248, 0.35);
       border-radius: 20px;
       width: 96%;
-      max-width: 1140px;
+      max-width: 1320px;
       max-height: 92vh;
       display: flex;
       flex-direction: column;
@@ -616,7 +616,7 @@
 
     .tree-canvas-inner {
       position: relative;
-      min-width: 960px;
+      min-width: 1120px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -667,7 +667,7 @@
     /* 4 Thematic Branches Grid */
     .tree-branches-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 16px;
       width: 100%;
       position: relative;
@@ -712,6 +712,11 @@
       background: rgba(236, 72, 153, 0.15);
       color: #f9a8d4;
       border: 1px solid rgba(236, 72, 153, 0.35);
+    }
+    .branch-grimoire .branch-header {
+      background: rgba(251, 146, 60, 0.15);
+      color: #fdba74;
+      border: 1px solid rgba(251, 146, 60, 0.4);
     }
     .branch-eco .branch-header {
       background: rgba(16, 185, 129, 0.15);
@@ -989,6 +994,15 @@
       box-shadow: 0 0 16px rgba(251, 146, 60, 0.5);
     }
     .spell-btn.empty { opacity: 0.4; }
+    .spell-btn.locked { opacity: 0.32; filter: grayscale(0.9); }
+    .spell-level {
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 9px;
+      font-weight: 900;
+      color: #fdba74;
+    }
     .spell-icon { font-size: 20px; line-height: 1.1; }
     .spell-name { font-size: 9px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); }
 
@@ -1694,13 +1708,13 @@
           <div class="ink-track"><div id="inkFill" class="ink-fill"></div></div>
         </div>
         <button class="spell-btn" data-spell="fire" title="Trait de feu : brûle les ennemis qui le traversent (touche 1)">
-          <span class="unit-hotkey">1</span><span class="spell-icon">🔥</span><span class="spell-name">Feu</span>
+          <span class="unit-hotkey">1</span><span class="spell-icon">🔥</span><span class="spell-name">Feu</span><span class="spell-level"></span>
         </button>
         <button class="spell-btn" data-spell="ice" title="Encre gelée : ralentit fortement les ennemis (touche 2)">
-          <span class="unit-hotkey">2</span><span class="spell-icon">🧊</span><span class="spell-name">Givre</span>
+          <span class="unit-hotkey">2</span><span class="spell-icon">🧊</span><span class="spell-name">Givre</span><span class="spell-level"></span>
         </button>
         <button class="spell-btn" data-spell="heal" title="Aquarelle : soigne vos unités (touche 3)">
-          <span class="unit-hotkey">3</span><span class="spell-icon">💚</span><span class="spell-name">Soin</span>
+          <span class="unit-hotkey">3</span><span class="spell-icon">💚</span><span class="spell-name">Soin</span><span class="spell-level"></span>
         </button>
         <button id="pauseBtn" class="spell-btn" title="Pause tactique : vous pouvez peindre vos sorts pendant la pause (Espace)">
           <span class="spell-icon" id="pauseIcon">⏸</span><span class="spell-name" id="pauseLabel">Pause</span>
@@ -1999,6 +2013,7 @@
     const active        = new Uint8Array(MAX_ENTITIES);
     const hit_flash     = new Float32Array(MAX_ENTITIES);
     const slow_until    = new Float32Array(MAX_ENTITIES);
+    const slow_factor   = new Float32Array(MAX_ENTITIES).fill(1);
     const fire_tick     = new Int32Array(MAX_ENTITIES);
     const heal_tick     = new Int32Array(MAX_ENTITIES);
 
@@ -2855,6 +2870,15 @@
         critMultiplier: 2.2,
         archerDmgMult: 1.0,
         archerProjSpeedMult: 1.0,
+        spellLevels: { fire: 0, ice: 0, heal: 0 },
+        fireDamageMult: 1.0,
+        fireLifeMult: 1.0,
+        iceSlowFactor: 0.35,
+        iceLifeMult: 1.0,
+        healMult: 1.0,
+        healLifeMult: 1.0,
+        spellRadiusMult: 1.0,
+        spellCostMult: 1.0,
         mageAoeRadiusMult: 1.0,
         mageAoeDmgMult: 1.0,
         interestRate: 0.0,
@@ -3041,8 +3065,47 @@
       },
 
       {
+        id: 'sorts_1',
+        branch: 'grimoire',
+        tier: 1,
+        name: "🔥 Trait de Feu",
+        desc: "Niveau 1 : débloque le sort de Feu. Chaque niveau suivant : +40% de brûlure et +25% de durée.",
+        baseCost: 20,
+        costScale: 1.8,
+        level: 0,
+        maxLevel: 4,
+        parentId: 'root_cmd',
+        reqLevel: 1
+      },
+      {
+        id: 'sorts_2',
+        branch: 'grimoire',
+        tier: 2,
+        name: "🧊 Encre Gelée",
+        desc: "Niveau 1 : débloque le Givre (ennemis ralentis de 65%). Chaque niveau suivant : ralentissement plus fort et +30% de durée.",
+        baseCost: 35,
+        costScale: 1.8,
+        level: 0,
+        maxLevel: 3,
+        parentId: 'sorts_1',
+        reqLevel: 1
+      },
+      {
+        id: 'sorts_3',
+        branch: 'grimoire',
+        tier: 2,
+        name: "💚 Aquarelle",
+        desc: "Niveau 1 : débloque le Soin, qui soigne aussi le Titan. Chaque niveau suivant : +50% de soin et +25% de durée.",
+        baseCost: 35,
+        costScale: 1.8,
+        level: 0,
+        maxLevel: 3,
+        parentId: 'sorts_1',
+        reqLevel: 1
+      },
+      {
         id: 'arcane_5',
-        branch: 'arcane',
+        branch: 'grimoire',
         tier: 3,
         name: "🎨 Palette Profonde",
         desc: "+25 d'Encre maximum et +1,5 d'Encre par seconde par niveau pour peindre davantage de sorts en combat.",
@@ -3050,7 +3113,20 @@
         costScale: 1.60,
         level: 0,
         maxLevel: 3,
-        parentId: 'arcane_1',
+        parentId: 'sorts_1',
+        reqLevel: 2
+      },
+      {
+        id: 'sorts_4',
+        branch: 'grimoire',
+        tier: 3,
+        name: "✒️ Trait Épais",
+        desc: "Les traits de tous les sorts sont 20% plus larges et coûtent 15% d'encre en moins par niveau.",
+        baseCost: 60,
+        costScale: 1.7,
+        level: 0,
+        maxLevel: 3,
+        parentId: 'sorts_1',
         reqLevel: 2
       },
 
@@ -3150,6 +3226,22 @@
       state.unlockedUnits[TYPE_MAGE] = (c3 >= 1);
       state.mods.mageAoeRadiusMult = 1.0 + c4 * 0.25;
       state.mods.mageAoeDmgMult = Math.pow(1.20, c4);
+
+      // Grimoire : le niveau 1 débloque le sort, les suivants le renforcent
+      const fireLevel = skillMap['sorts_1'].level;
+      const iceLevel = skillMap['sorts_2'].level;
+      const healLevel = skillMap['sorts_3'].level;
+      const thickLevel = skillMap['sorts_4'].level;
+      state.mods.spellLevels = { fire: fireLevel, ice: iceLevel, heal: healLevel };
+      state.mods.fireDamageMult = 1 + Math.max(0, fireLevel - 1) * 0.4;
+      state.mods.fireLifeMult = 1 + Math.max(0, fireLevel - 1) * 0.25;
+      state.mods.iceSlowFactor = [0.35, 0.35, 0.25, 0.15][iceLevel];
+      state.mods.iceLifeMult = 1 + Math.max(0, iceLevel - 1) * 0.3;
+      state.mods.healMult = 1 + Math.max(0, healLevel - 1) * 0.5;
+      state.mods.healLifeMult = 1 + Math.max(0, healLevel - 1) * 0.25;
+      state.mods.spellRadiusMult = 1 + thickLevel * 0.2;
+      state.mods.spellCostMult = 1 - thickLevel * 0.15;
+      updateSpellButtons();
 
       const c5 = skillMap['arcane_5'].level;
       state.maxInk = 100 + c5 * 25;
@@ -3887,7 +3979,7 @@
           hp[i] = Math.min(max_hp[i], hp[i] + max_hp[i] * tankRegen * dt);
         }
 
-        const slowFactor = slow_until[i] > simClock ? ICE_SLOW_FACTOR : 1.0;
+        const slowFactor = slow_until[i] > simClock ? slow_factor[i] : 1.0;
         if (cooldown[i] > 0) cooldown[i] -= dt * slowFactor;
         const moveFactor = slowFactor * (terrain.active && isMudAt(px, py) ? MUD_SPEED_FACTOR : 1.0);
 
@@ -4481,7 +4573,30 @@
       ice:  { label: 'GIVRE', cost: 2.5, life: 5.5, fill: 'rgba(103, 232, 249, 1)', paint: 'rgb(103, 232, 249)' },
       heal: { label: 'SOIN', cost: 3.0, life: 4.5, fill: 'rgba(74, 222, 128, 1)', paint: 'rgb(74, 222, 128)' }
     };
-    const SPELL_UNLOCK_WAVE = { fire: 2, ice: 3, heal: 4 };
+    const SPELL_NODE = { fire: 'sorts_1', ice: 'sorts_2', heal: 'sorts_3' };
+
+    function spellLevel(key) {
+      return (state.mods.spellLevels && state.mods.spellLevels[key]) || 0;
+    }
+
+    function spellCost(key) {
+      return SPELLS[key].cost * state.mods.spellCostMult;
+    }
+
+    function spellLife(key) {
+      const mult = key === 'fire' ? state.mods.fireLifeMult : (key === 'ice' ? state.mods.iceLifeMult : state.mods.healLifeMult);
+      return SPELLS[key].life * mult;
+    }
+
+    // Un seul ralentissement par unité : le plus fort l'emporte tant qu'il dure
+    function applySlow(u, until, factor) {
+      if (slow_until[u] > simClock && slow_factor[u] < factor) {
+        slow_until[u] = Math.max(slow_until[u], until);
+        return;
+      }
+      slow_until[u] = until;
+      slow_factor[u] = factor;
+    }
     const SPELL_DAB_RADIUS = 36;
     const SPELL_MAX_DABS = 260;
     const SPELL_TICK = 0.2;
@@ -4500,12 +4615,12 @@
     let spellStroke = null;
 
     function spellDabRadius() {
-      return SPELL_DAB_RADIUS * Math.sqrt(arena.scale);
+      return SPELL_DAB_RADIUS * Math.sqrt(arena.scale) * state.mods.spellRadiusMult;
     }
 
     function selectSpell(key) {
-      if (state.wave < SPELL_UNLOCK_WAVE[key]) {
-        showNotification(`🔒 ${SPELLS[key].label} : DÉBLOQUÉ À LA VAGUE ${SPELL_UNLOCK_WAVE[key]}.`);
+      if (spellLevel(key) <= 0) {
+        showNotification(`🔒 ${SPELLS[key].label} : À DÉBLOQUER DANS LE GRIMOIRE DE GUERRE (ARBRE DE COMPÉTENCES).`);
         return;
       }
       state.activeSpell = (state.activeSpell === key) ? null : key;
@@ -4516,7 +4631,11 @@
       document.querySelectorAll('.spell-btn[data-spell]').forEach((btn) => {
         const key = btn.getAttribute('data-spell');
         btn.classList.toggle('active', state.activeSpell === key);
-        btn.classList.toggle('empty', state.ink < SPELLS[key].cost || state.wave < SPELL_UNLOCK_WAVE[key]);
+        const level = spellLevel(key);
+        btn.classList.toggle('locked', level <= 0);
+        btn.classList.toggle('empty', level > 0 && state.ink < spellCost(key));
+        const lock = btn.querySelector('.spell-level');
+        if (lock) lock.textContent = level <= 0 ? '🔒' : (level > 1 ? `N${level}` : '');
       });
     }
 
@@ -4524,17 +4643,19 @@
       const key = state.activeSpell;
       if (!key) return false;
       const spell = SPELLS[key];
-      if (state.ink < spell.cost) {
+      const cost = spellCost(key);
+      if (state.ink < cost) {
         showNotification("🎨 PLUS D'ENCRE ! ÉLIMINEZ DES ENNEMIS POUR EN REGAGNER.");
         spellStroke = null;
         return false;
       }
-      state.ink -= spell.cost;
-      state.waveStats.inkUsed[key] += spell.cost;
+      state.ink -= cost;
+      state.waveStats.inkUsed[key] += cost;
       const r = spellDabRadius();
+      const life = spellLife(key);
       if (spellDabs.length >= SPELL_MAX_DABS) spellDabs.shift();
-      spellDabs.push({ x, y, r, key, life: spell.life, maxLife: spell.life, seed: Math.random() * 6.28 });
-      netEmit('d', Math.round(x), Math.round(y), Math.round(r), key);
+      spellDabs.push({ x, y, r, key, life, maxLife: life, seed: Math.random() * 6.28 });
+      netEmit('d', Math.round(x), Math.round(y), Math.round(r), key, +life.toFixed(2));
       paintBlob(x, y, r * 0.42, spell.paint, 0.34);
       return true;
     }
@@ -4585,12 +4706,12 @@
                 if (dab.key === 'fire' && team[curr] === 1 && fire_tick[curr] !== spellTickId) {
                   fire_tick[curr] = spellTickId;
                   const pct = shape_type[curr] === TYPE_BOSS ? FIRE_BOSS_DPS_PCT : FIRE_DPS_PCT;
-                  applyDamageToUnit(-1, curr, max_hp[curr] * pct * SPELL_TICK, false);
+                  applyDamageToUnit(-1, curr, max_hp[curr] * pct * state.mods.fireDamageMult * SPELL_TICK, false);
                 } else if (dab.key === 'ice' && team[curr] === 1) {
-                  slow_until[curr] = simClock + SPELL_TICK * 1.6;
+                  applySlow(curr, simClock + SPELL_TICK * 1.6, state.mods.iceSlowFactor);
                 } else if (dab.key === 'heal' && team[curr] === 0 && heal_tick[curr] !== spellTickId) {
                   heal_tick[curr] = spellTickId;
-                  hp[curr] = Math.min(max_hp[curr], hp[curr] + max_hp[curr] * HEAL_PS_PCT * SPELL_TICK);
+                  hp[curr] = Math.min(max_hp[curr], hp[curr] + max_hp[curr] * HEAL_PS_PCT * state.mods.healMult * SPELL_TICK);
                 }
               }
             }
@@ -4662,6 +4783,7 @@
     }
 
     const ARMY_MILESTONES = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+    const announcedSpells = new Set();
     let lastArmyMilestone = 0;
 
     function announceBattleStart() {
@@ -4672,10 +4794,12 @@
         addShake(Math.min(14, 3 + reached / 150));
         return;
       }
-      const newSpell = Object.keys(SPELL_UNLOCK_WAVE).find((key) => SPELL_UNLOCK_WAVE[key] === state.wave);
-      if (newSpell) {
+      // Le premier combat avec un sort tout juste débloqué rappelle comment le lancer
+      const fresh = Object.keys(SPELL_NODE).find((key) => spellLevel(key) > 0 && !announcedSpells.has(key));
+      if (fresh) {
+        announcedSpells.add(fresh);
         const action = isTouchDevice ? 'TRACEZ-LE AU DOIGT' : 'TRACEZ-LE AU CLIC GAUCHE';
-        showNotification(`🎨 NOUVEAU SORT : ${SPELLS[newSpell].label} ! CHOISISSEZ-LE, PUIS ${action}.`);
+        showNotification(`🎨 ${SPELLS[fresh].label} PRÊT : CHOISISSEZ-LE DANS LA BARRE D'ENCRE, PUIS ${action}.`);
       }
     }
 
@@ -5695,8 +5819,8 @@
         ? "Un doigt hors de la zone déplace la vue. Deux doigts déplacent et zooment partout. AUTO recadre."
         : "La molette zoome. Glissez hors de la zone, ou utilisez les flèches, pour déplacer la vue. F recadre.";
       const spellHelp = isTouchDevice
-        ? "En combat, choisissez Feu, Givre ou Soin, puis tracez avec le doigt. Touchez à nouveau le sort pour le ranger."
-        : "En combat, choisissez Feu, Givre ou Soin (touches 1, 2, 3), puis tracez au clic gauche. Espace met le jeu en pause : vous pouvez peindre pendant la pause.";
+        ? "Débloquez et renforcez les sorts dans le Grimoire de guerre de l'arbre de compétences. En combat, choisissez Feu, Givre ou Soin, puis tracez avec le doigt."
+        : "Débloquez et renforcez les sorts dans le Grimoire de guerre de l'arbre de compétences. En combat, choisissez Feu, Givre ou Soin (touches 1, 2, 3), puis tracez au clic gauche. Espace met le jeu en pause : vous pouvez peindre pendant la pause.";
       const cards = [
         ['🖌️ Peignez votre armée', paintHelp],
         ['📐 Anticipez', "Observez la formation ennemie annoncée en haut : coin, croissant, pinces… Placez les Tanks devant, les Archers et les Mages derrière, puis ajustez avec le pronostic."],
@@ -6089,6 +6213,10 @@
       state.spentTreeGold += cost;
       node.level++;
       markSaveDirty();
+      const unlockedSpell = { sorts_1: 'fire', sorts_2: 'ice', sorts_3: 'heal' }[node.id];
+      if (unlockedSpell && node.level === 1) {
+        showNotification(`🎨 SORT DÉBLOQUÉ : ${SPELLS[unlockedSpell].label} ! IL APPARAÎTRA DANS VOTRE BARRE D'ENCRE AU COMBAT.`, 'victory');
+      }
 
       playSfx('gold');
       recalculateSkillModifiers();
@@ -6150,7 +6278,8 @@
         { key: 'bastion', title: '🛡️ BASTION & PHALANGE', css: 'branch-bastion' },
         { key: 'assault', title: '⚔️ ASSAUT & OMBRES',    css: 'branch-assault' },
         { key: 'arcane',  title: '🏹 ARTILLERIE & ARCANES', css: 'branch-arcane' },
-        { key: 'eco',     title: '🪙 LOGISTIQUE & ÉCO',   css: 'branch-eco' }
+        { key: 'eco',     title: '🪙 LOGISTIQUE & ÉCO',   css: 'branch-eco' },
+        { key: 'grimoire', title: '🖌️ GRIMOIRE DE GUERRE', css: 'branch-grimoire' }
       ];
 
       branchDefs.forEach(bDef => {
@@ -6671,7 +6800,7 @@
             if (team[u] === 0) {
               if (blessing > 0) hp[u] = Math.min(max_hp[u], hp[u] + max_hp[u] * 0.015 * blessing * 0.25);
             } else if (terror > 0) {
-              slow_until[u] = simClock + 0.4;
+              applySlow(u, simClock + 0.4, ICE_SLOW_FACTOR);
             }
             return true;
           });
@@ -6741,7 +6870,7 @@
           if (along < 0) continue;
           const side = Math.abs(ux * cy - uy * cx);
           if (side <= width) {
-            if (petrify) slow_until[u] = simClock + 1.2;
+            if (petrify) applySlow(u, simClock + 1.2, ICE_SLOW_FACTOR);
             titanHit(u, tickDamage);
             break;
           }
@@ -6781,7 +6910,7 @@
           if (active[u] === 1) {
             const d = Math.hypot(pos_x[u] - x, pos_y[u] - y) || 1;
             moveUnit(u, ((pos_x[u] - x) / d) * 55, ((pos_y[u] - y) / d) * 55);
-            if (seism) slow_until[u] = simClock + 3;
+            if (seism) applySlow(u, simClock + 3, ICE_SLOW_FACTOR);
           }
           return true;
         });
@@ -7713,7 +7842,8 @@
           spawnShards(e[1], e[2], e[3], e[4]);
         } else if (e[0] === 'd') {
           const spell = SPELLS[e[4]];
-          spellDabs.push({ x: e[1], y: e[2], r: e[3], key: e[4], life: spell.life, maxLife: spell.life, seed: Math.random() * 6.28 });
+          const dabLife = e[5] || spell.life;
+          spellDabs.push({ x: e[1], y: e[2], r: e[3], key: e[4], life: dabLife, maxLife: dabLife, seed: Math.random() * 6.28 });
           paintBlob(e[1], e[2], e[3] * 0.42, spell.paint, 0.34);
         } else if (e[0] === 'r') {
           aoeRings.push({ x: e[1], y: e[2], maxR: e[3], color: e[4], life: e[5], maxLife: e[5] });
