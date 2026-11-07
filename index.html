@@ -1366,17 +1366,32 @@
     .titan-souls-chip { font-size: 13px; font-weight: 900; color: var(--gold); white-space: nowrap; }
     .titan-tree-body { flex: 1; min-height: 0; display: flex; }
     .titan-tree-stage { position: relative; flex: 1; min-width: 0; min-height: 0; }
-    #titanTreeSvg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #titanTreeSvg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+    #titanTreeSvg:active { cursor: grabbing; }
+    .titan-axis-label { font-size: 40px; font-weight: 900; letter-spacing: 0.08em; }
+    .titan-axis-hint { font-size: 19px; font-weight: 700; fill: #94a3b8; }
+    .titan-tree-zoom { position: absolute; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .titan-tree-hint {
+      position: absolute;
+      left: 50%;
+      bottom: 8px;
+      transform: translateX(-50%);
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      pointer-events: none;
+      white-space: nowrap;
+    }
     .titan-node { cursor: pointer; }
     .titan-node:hover circle { fill: rgba(51, 65, 85, 0.98); }
     .titan-branch-label { font-size: 21px; font-weight: 900; }
+    /* L'aperçu du Titan reste dans un coin : il ne cache plus les premières compétences */
     .titan-preview {
       position: absolute;
-      left: 50%;
-      top: 50%;
-      height: 23%;
+      left: 10px;
+      top: 10px;
+      height: min(150px, 24%);
       aspect-ratio: 1;
-      transform: translate(-50%, -50%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1514,7 +1529,9 @@
       .titan-inspector { flex-basis: 190px; padding: 8px; gap: 5px; }
       .titan-insp-title { font-size: 12px; }
       .titan-insp-desc { font-size: 10.5px; }
-      .titan-branch-label { display: none; }
+      .titan-preview { height: min(84px, 22%); border-width: 2px; }
+      .titan-size-label { font-size: 9px; }
+      .titan-tree-hint { display: none; }
       .duo-body { padding: 10px; }
 
       /* Arbre de compétences */
@@ -1843,7 +1860,13 @@
       </div>
       <div class="titan-tree-body">
         <div class="titan-tree-stage">
-          <svg id="titanTreeSvg" viewBox="-160 -130 1320 1270" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Arbre d'évolution du Titan"></svg>
+          <svg id="titanTreeSvg" viewBox="-1090 -560 2690 1040" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Arbre d'évolution du Titan"></svg>
+          <div class="titan-tree-zoom">
+            <button id="titanZoomInBtn" class="zoom-btn" title="Zoomer">+</button>
+            <button id="titanZoomOutBtn" class="zoom-btn" title="Dézoomer">−</button>
+            <button id="titanZoomFitBtn" class="zoom-btn zoom-fit" title="Recentrer">⤢</button>
+          </div>
+          <div class="titan-tree-hint">Glissez pour vous déplacer · molette ou deux doigts pour zoomer</div>
           <button id="titanPreviewBtn" class="titan-preview" aria-label="Voir le Titan et sa compétence Éveil">
             <canvas id="titanPreview" width="300" height="300"></canvas>
             <span id="titanSizeLabel" class="titan-size-label"></span>
@@ -2045,6 +2068,14 @@
     const slow_factor   = new Float32Array(MAX_ENTITIES).fill(1);
     const fire_tick     = new Int32Array(MAX_ENTITIES);
     const heal_tick     = new Int32Array(MAX_ENTITIES);
+    // Petits Titans : couleur (0 = unité normale), minuterie de capacité, effet en cours
+    const elite_kind    = new Uint8Array(MAX_ENTITIES);
+    const elite_timer   = new Float32Array(MAX_ENTITIES);
+    const elite_until   = new Float32Array(MAX_ENTITIES);
+    const elite_flag    = new Uint8Array(MAX_ENTITIES);
+    const elite_aux_x   = new Float32Array(MAX_ENTITIES);
+    const elite_aux_y   = new Float32Array(MAX_ENTITIES);
+    const elite_budget  = new Float32Array(MAX_ENTITIES);
 
     let activeEntityCount = 0;
     let playerCount = 0;
@@ -3682,6 +3713,9 @@
       active[idx] = 1;
       hit_flash[idx] = 0;
       slow_until[idx] = 0;
+      elite_kind[idx] = 0;
+      elite_flag[idx] = 0;
+      elite_until[idx] = 0;
 
       activeEntityCount++;
       if (uType === TYPE_TITAN) {
@@ -3832,6 +3866,13 @@
         remainingBudget -= bossCount * 65;
       }
 
+      // Petits Titans
+      const eliteKinds = pickEliteKinds(waveNum, eliteCountForWave(waveNum));
+      // Ils prennent au plus 30% du budget : sur les petites vagues, ce sont de tout petits Titans
+      const eliteBudget = Math.min(waveBudget * 0.3, eliteKinds.length * ELITE_BUDGET_COST);
+      const eliteScale = eliteKinds.length > 0 ? eliteBudget / (eliteKinds.length * ELITE_BUDGET_COST) : 1;
+      remainingBudget -= eliteBudget;
+
       // Répartition tactique par vague
       const pctTank     = waveNum >= 3 ? Math.min(0.26, 0.12 + (waveNum - 3) * 0.02) : 0;
       const pctArcher   = waveNum >= 2 ? Math.min(0.28, 0.16 + (waveNum - 2) * 0.02) : 0;
@@ -3882,6 +3923,11 @@
           spawnUnit(startX - 30, by, 1, TYPE_BOSS);
         }
       }
+      eliteKinds.forEach((kind, k) => {
+        const ey = centerY + (k - (eliteKinds.length - 1) * 0.5) * 70;
+        const idx = spawnUnit(startX - 12, ey, 1, TYPE_BOSS);
+        if (idx !== -1) makeElite(idx, kind, eliteScale);
+      });
 
       let currentColX = startX;
 
@@ -3938,7 +3984,14 @@
           parts.push(`${counts[t]} ${counts[t] > 1 ? UNIT_SPECS[t].plural : UNIT_SPECS[t].name}`);
         }
       }
+      const eliteNames = {};
+      for (const kind of eliteKinds) eliteNames[kind] = (eliteNames[kind] || 0) + 1;
+      for (const [kind, n] of Object.entries(eliteNames)) parts.unshift(`${n > 1 ? n + ' ' : ''}${ELITE_KINDS[kind].name}`);
       enemyWaveBreakdownText = `${formation.name} : ${parts.join(' • ')}`;
+      const fresh = eliteKinds.find((kind) => ELITE_KINDS[kind].fromWave === waveNum);
+      if (fresh && !state.inBattle) {
+        setTimeout(() => showNotification(`⚠️ NOUVEAU PETIT TITAN : ${ELITE_KINDS[fresh].name.toUpperCase()}. ${ELITE_KINDS[fresh].desc}`, 'defeat'), 1800);
+      }
       updatePrognosisUI();
     }
 
@@ -3956,6 +4009,7 @@
       if (victimType === TYPE_TITAN) finalDmg *= (1.0 - titan.armor);
 
       if (victimType === TYPE_TITAN && !isMelee) finalDmg *= (1.0 - titan.rangedArmor);
+      if (elite_kind[victimIdx] === 1 && elite_until[victimIdx] > simClock) finalDmg *= 0.25;
       if (victimType === TYPE_TITAN) {
         const lastStand = titanLevel('coeur_7');
         if (lastStand > 0 && hp[victimIdx] < max_hp[victimIdx] * 0.4) finalDmg *= (1.0 - 0.15 * lastStand);
@@ -5192,7 +5246,7 @@
       for (let i = 0; i < MAX_ENTITIES; i++) {
         if (active[i] === 0) continue;
         const s = shape_type[i];
-        if (s === TYPE_TITAN) continue;
+        if (s === TYPE_TITAN || elite_kind[i] > 0) continue;
         const count = shapeCounts[s];
         const dest = count * INSTANCE_FLOATS;
         shapeCounts[s]++;
@@ -5269,7 +5323,7 @@
       fallbackCtx.clearRect(0, 0, viewW, viewH);
       applyWorldTransform(fallbackCtx);
       for (let i = 0; i < MAX_ENTITIES; i++) {
-        if (active[i] === 0 || shape_type[i] === TYPE_TITAN) continue;
+        if (active[i] === 0 || shape_type[i] === TYPE_TITAN || elite_kind[i] > 0) continue;
         const isPlayer = (team[i] === 0);
         if (hit_flash[i] > 0) {
           hit_flash[i] -= rawDt;
@@ -5395,6 +5449,7 @@
 
       renderSpellDabs(zoom);
 
+      renderMiniTitans(overlayCtx, zoom);
       if (titan.idx >= 0 && active[titan.idx] === 1) {
         renderTitan(overlayCtx, zoom);
       }
@@ -6602,6 +6657,341 @@
     }
 
     // =========================================================================
+    // LES PETITS TITANS : des mini-boss ennemis. Ils marchent (les murs les arrêtent), plus lentement
+    // que le Titan, et chaque couleur a son caractère et son attaque.
+    // =========================================================================
+    const ELITE_KINDS = [
+      null,
+      { name: 'Colosse de Jade', color: '#22c55e', dark: '#14532d', light: '#bbf7d0', hp: 2.6, dmg: 0.7, speed: 0.75, cooldown: 9, fromWave: 4,
+        desc: "Vert : très résistant. Se couvre d'une carapace qui bloque 75% des dégâts et enracine les ennemis proches." },
+      { name: 'Bourreau Écarlate', color: '#ef4444', dark: '#7f1d1d', light: '#fecaca', hp: 1.1, dmg: 2.0, speed: 0.95, cooldown: 5, fromWave: 6,
+        desc: "Rouge : dégâts. Fend en arc les 6 ennemis les plus proches, et enrage sous la moitié de ses PV." },
+      { name: "Éclair d'Azur", color: '#3b82f6', dark: '#1e3a8a', light: '#bfdbfe', hp: 0.9, dmg: 1.1, speed: 1.6, cooldown: 4.5, fromWave: 8,
+        desc: "Bleu : vitesse. Fonce sur sa cible et renverse les premiers ennemis sur son passage." },
+      { name: 'Héraut Doré', color: '#eab308', dark: '#713f12', light: '#fef08a', hp: 1.3, dmg: 0.8, speed: 0.9, cooldown: 7, fromWave: 10,
+        desc: "Or : soutien. Les ennemis autour de lui frappent 30% plus fort, et il soigne les 12 plus proches." },
+      { name: "Sorcier d'Améthyste", color: '#a855f7', dark: '#4c1d95', light: '#e9d5ff', hp: 1.0, dmg: 1.0, speed: 0.85, cooldown: 6, fromWave: 12,
+        desc: "Violet : magie. Fait tomber une météore qui écrase les 8 ennemis les plus proches de l'impact." }
+    ];
+    const ELITE_RADIUS = 17;
+    const ELITE_BUDGET_COST = 45;
+    const HERALD_RADIUS = 170;
+    const eliteList = [];
+    const heraldList = [];
+
+    function eliteCountForWave(w) {
+      if (w < 4) return 0;
+      return Math.min(6, 1 + Math.floor((w - 4) / 5) + (state.duo && w >= 8 ? 1 : 0));
+    }
+
+    function pickEliteKinds(w, count) {
+      const pool = [];
+      for (let k = 1; k < ELITE_KINDS.length; k++) if (ELITE_KINDS[k].fromWave <= w) pool.push(k);
+      const kinds = [];
+      // La vague où une couleur apparaît, elle est au rendez-vous
+      const fresh = pool.find((k) => ELITE_KINDS[k].fromWave === w);
+      if (fresh && count > 0) kinds.push(fresh);
+      while (kinds.length < count && pool.length) kinds.push(pool[Math.floor(Math.random() * pool.length)]);
+      return kinds;
+    }
+
+    function makeElite(idx, kind, power = 1) {
+      const spec = ELITE_KINDS[kind];
+      elite_kind[idx] = kind;
+      hp[idx] *= 0.5 * spec.hp * power;
+      max_hp[idx] = hp[idx];
+      damage[idx] *= 0.6 * spec.dmg * Math.sqrt(power);
+      speed[idx] *= spec.speed;
+      radius[idx] = ELITE_RADIUS;
+      mass[idx] = 16;
+      elite_timer[idx] = spec.cooldown * (0.35 + Math.random() * 0.5);
+      elite_until[idx] = 0;
+      elite_flag[idx] = 0;
+    }
+
+    function heraldMultiplier(i) {
+      for (const h of heraldList) {
+        if (h !== i && (pos_x[i] - pos_x[h]) ** 2 + (pos_y[i] - pos_y[h]) ** 2 <= HERALD_RADIUS * HERALD_RADIUS) return 1.3;
+      }
+      return 1;
+    }
+
+    function eliteSystem(dt) {
+      eliteList.length = 0;
+      heraldList.length = 0;
+      for (let i = 0; i < MAX_ENTITIES; i++) {
+        if (active[i] === 1 && elite_kind[i] > 0) {
+          eliteList.push(i);
+          if (elite_kind[i] === 4) heraldList.push(i);
+        }
+      }
+      for (const i of eliteList) {
+        if (active[i] === 0) continue;
+        const kind = elite_kind[i];
+        const spec = ELITE_KINDS[kind];
+        const x = pos_x[i];
+        const y = pos_y[i];
+        const r = radius[i];
+
+        // Effets en cours
+        if (kind === 3 && elite_until[i] > simClock && elite_budget[i] > 0) {
+          // Ruée : le mur l'arrête, et l'élan s'use sur les premiers renversés
+          moveUnit(i, elite_aux_x[i] * 620 * dt, elite_aux_y[i] * 620 * dt);
+          const hit = collectNearest(pos_x[i], pos_y[i], r + 14, 0, Math.min(3, Math.ceil(elite_budget[i])), true);
+          const victims = Array.from(zoneIdx.subarray(0, hit));
+          for (const u of victims) {
+            applyDamageToUnit(i, u, damage[i] * 1.5 * dt * 6, false);
+            if (active[u] === 1 && u !== titan.idx) moveUnit(u, elite_aux_x[i] * 240 * dt, elite_aux_y[i] * 240 * dt);
+          }
+          elite_budget[i] -= hit * dt * 6;
+        }
+        if (kind === 5 && elite_until[i] > 0 && simClock >= elite_until[i]) {
+          // La météore tombe
+          elite_until[i] = 0;
+          const tx = elite_aux_x[i];
+          const ty = elite_aux_y[i];
+          const hit = collectNearest(tx, ty, 80, 0, 8, true);
+          const victims = Array.from(zoneIdx.subarray(0, hit));
+          for (const u of victims) applyDamageToUnit(i, u, damage[i] * 2.6, false);
+          addRing(tx, ty, 80, '#a855f7', 0.45);
+          paintBlob(tx, ty, 26, 'rgb(168, 85, 247)', 0.3);
+          netEmit('b', Math.round(tx), Math.round(ty), 26, 'rgb(168, 85, 247)');
+          addShake(4);
+        }
+        if (kind === 2 && elite_flag[i] === 0 && hp[i] < max_hp[i] * 0.5) {
+          // Rage : il frappe bien plus vite
+          max_cooldown[i] *= 0.6;
+          addRing(x, y, r * 2.4, '#ef4444', 0.5);
+        }
+        elite_flag[i] = (kind === 1 && elite_until[i] > simClock) || (kind === 3 && elite_until[i] > simClock) ||
+          (kind === 2 && hp[i] < max_hp[i] * 0.5) || (kind === 5 && elite_until[i] > 0) ? 1 : 0;
+
+        elite_timer[i] -= dt;
+        if (elite_timer[i] > 0) continue;
+
+        if (kind === 1) {
+          if (collectNearest(x, y, 150, 0, 1, true) === 0) { elite_timer[i] = 0.5; continue; }
+          elite_until[i] = simClock + 3;
+          const rooted = collectNearest(x, y, 150, 0, 8, true);
+          for (let k = 0; k < rooted; k++) applySlow(zoneIdx[k], simClock + 2, 0.25);
+          addRing(x, y, r * 2.6, '#22c55e', 0.6);
+        } else if (kind === 2) {
+          const hit = collectNearest(x, y, r + 62, 0, 6, true);
+          if (hit === 0) { elite_timer[i] = 0.4; continue; }
+          const victims = Array.from(zoneIdx.subarray(0, hit));
+          for (const u of victims) applyDamageToUnit(i, u, damage[i] * 3, false);
+          addRing(x, y, r + 62, '#ef4444', 0.35);
+        } else if (kind === 3) {
+          const found = collectNearest(x, y, 330, 0, 6, true);
+          if (found === 0) { elite_timer[i] = 0.5; continue; }
+          const target = zoneIdx[found - 1];
+          const dx = pos_x[target] - x;
+          const dy = pos_y[target] - y;
+          const len = Math.hypot(dx, dy) || 1;
+          elite_aux_x[i] = dx / len;
+          elite_aux_y[i] = dy / len;
+          elite_until[i] = simClock + Math.min(0.45, len / 620 + 0.08);
+          elite_budget[i] = 6;
+          addRing(x, y, r * 2, '#3b82f6', 0.3);
+        } else if (kind === 4) {
+          const healed = collectNearest(x, y, HERALD_RADIUS, 1, 12, false);
+          for (let k = 0; k < healed; k++) {
+            const u = zoneIdx[k];
+            hp[u] = Math.min(max_hp[u], hp[u] + max_hp[u] * 0.2);
+          }
+          addRing(x, y, HERALD_RADIUS, '#eab308', 0.6);
+        } else if (kind === 5) {
+          const found = collectNearest(x, y, 340, 0, 3, true);
+          if (found === 0) { elite_timer[i] = 0.5; continue; }
+          const target = zoneIdx[found - 1];
+          elite_aux_x[i] = pos_x[target];
+          elite_aux_y[i] = pos_y[target];
+          elite_until[i] = simClock + 1.1;
+          addRing(elite_aux_x[i], elite_aux_y[i], 80, '#c084fc', 1.1);
+        }
+        elite_timer[i] = spec.cooldown;
+      }
+    }
+
+    // Un petit Titan : le même genre de corps que le Titan, à sa couleur, avec son accessoire
+    function drawMiniTitan(ctx, i, time, zoom) {
+      const spec = ELITE_KINDS[elite_kind[i]];
+      const kind = elite_kind[i];
+      const x = pos_x[i];
+      const y = pos_y[i];
+      const r = radius[i];
+      const on = elite_flag[i] === 1;
+      const flash = hit_flash[i] > 0;
+      const facing = (Math.abs(vel_x[i]) + Math.abs(vel_y[i]) > 1) ? Math.atan2(vel_y[i], vel_x[i]) : Math.PI;
+      ctx.save();
+      ctx.translate(x, y);
+      if (kind === 4) {
+        ctx.globalAlpha = 0.1;
+        ctx.fillStyle = spec.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, HERALD_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.4;
+        ctx.strokeStyle = spec.color;
+        ctx.lineWidth = 1.5 / zoom;
+        ctx.setLineDash([8 / zoom, 7 / zoom]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      // Halo : on le repère même très dézoomé
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = spec.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, Math.max(r * 1.6, 10 / zoom), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      if (kind === 3 && on) {
+        for (let k = 1; k <= 3; k++) {
+          ctx.globalAlpha = 0.25 / k;
+          ctx.beginPath();
+          ctx.arc(-Math.cos(facing) * r * k * 0.9, -Math.sin(facing) * r * k * 0.9, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+      ctx.rotate(facing);
+      // Poings
+      for (const side of [-1, 1]) {
+        const a = side * 1.15;
+        ctx.strokeStyle = spec.dark;
+        ctx.lineWidth = r * 0.24;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5);
+        ctx.lineTo(Math.cos(a) * r * 1.05, Math.sin(a) * r * 1.05);
+        ctx.stroke();
+        ctx.fillStyle = spec.dark;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r * 1.05, Math.sin(a) * r * 1.05, r * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Cornes du Bourreau
+      if (kind === 2) {
+        ctx.fillStyle = '#fef2f2';
+        for (const side of [-1, 1]) {
+          ctx.beginPath();
+          ctx.moveTo(-r * 0.1, side * r * 0.55);
+          ctx.lineTo(-r * 0.75, side * r * 1.15);
+          ctx.lineTo(-r * 0.45, side * r * 0.45);
+          ctx.fill();
+        }
+      }
+      // Corps
+      ctx.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2;
+        if (k === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.fillStyle = flash ? '#ffffff' : spec.color;
+      ctx.fill();
+      ctx.strokeStyle = spec.dark;
+      ctx.lineWidth = r * 0.12;
+      ctx.stroke();
+      // Accessoire de chaque couleur
+      ctx.fillStyle = spec.dark;
+      if (kind === 1) {
+        for (let k = 0; k < 6; k++) {
+          ctx.save();
+          ctx.rotate((k / 6) * Math.PI * 2 + Math.PI / 6);
+          ctx.fillRect(r * 0.45, -r * 0.13, r * 0.3, r * 0.26);
+          ctx.restore();
+        }
+      } else if (kind === 3) {
+        ctx.strokeStyle = spec.light;
+        ctx.lineWidth = r * 0.12;
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.5, -r * 0.35);
+        ctx.lineTo(-r * 0.05, r * 0.05);
+        ctx.lineTo(-r * 0.25, r * 0.1);
+        ctx.lineTo(r * 0.2, r * 0.45);
+        ctx.stroke();
+      } else if (kind === 5) {
+        const pulse = 1 + Math.sin(time * 6) * 0.15;
+        ctx.fillStyle = on ? '#faf5ff' : spec.light;
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.15, -r * 0.42 * pulse);
+        ctx.lineTo(r * 0.12, 0);
+        ctx.lineTo(-r * 0.15, r * 0.42 * pulse);
+        ctx.lineTo(-r * 0.42, 0);
+        ctx.fill();
+      }
+      // Yeux en colère
+      for (const side of [-1, 1]) {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(r * 0.5, side * r * 0.3, r * 0.17, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#7f1d1d';
+        ctx.beginPath();
+        ctx.arc(r * 0.56, side * r * 0.3, r * 0.09, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = spec.dark;
+        ctx.lineWidth = r * 0.08;
+        ctx.beginPath();
+        ctx.moveTo(r * 0.3, side * r * 0.12);
+        ctx.lineTo(r * 0.7, side * r * 0.45);
+        ctx.stroke();
+      }
+      ctx.restore();
+      // Couronne du Héraut et effets visibles
+      if (kind === 4) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(time * 0.8);
+        ctx.fillStyle = spec.light;
+        for (let k = 0; k < 6; k++) {
+          const a = (k / 6) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a - 0.12) * r * 1.08, Math.sin(a - 0.12) * r * 1.08);
+          ctx.lineTo(Math.cos(a) * r * 1.45, Math.sin(a) * r * 1.45);
+          ctx.lineTo(Math.cos(a + 0.12) * r * 1.08, Math.sin(a + 0.12) * r * 1.08);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+      if (kind === 1 && on) {
+        ctx.save();
+        ctx.globalAlpha = 0.75;
+        ctx.strokeStyle = spec.light;
+        ctx.lineWidth = r * 0.18;
+        ctx.beginPath();
+        for (let k = 0; k <= 6; k++) {
+          const a = (k / 6) * Math.PI * 2 + time;
+          const px = x + Math.cos(a) * r * 1.5;
+          const py = y + Math.sin(a) * r * 1.5;
+          if (k === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (kind === 2 && on) {
+        ctx.save();
+        ctx.globalAlpha = 0.3 + 0.25 * Math.sin(time * 12);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = r * 0.2;
+        ctx.beginPath();
+        ctx.arc(x, y, r * 1.35, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function renderMiniTitans(ctx, zoom) {
+      const time = performance.now() / 1000;
+      for (let i = 0; i < MAX_ENTITIES; i++) {
+        if (active[i] === 1 && elite_kind[i] > 0) drawMiniTitan(ctx, i, time, zoom);
+      }
+    }
+
+    // =========================================================================
     // 10. BOUCLE PRINCIPALE & ÉVÉNEMENTS CLAVIER / SOURIS
     // =========================================================================
     let bannerTimer = 0;
@@ -6647,75 +7037,76 @@
     }
     const TITAN_SOULS_PER_KILL = 0.05;
     const TITAN_KILL_SOULS_BASE = 5;
+    // Deux axes. ATTAQUE : Poings, puis Canons, puis Regard, une branche après l'autre.
+    // DÉFENSE : Cœur (vie) et Jambes (vitesse) ; les deux complètes ouvrent la Couronne, qui renforce l'armée.
+    // x0, y0 : position du premier nœud ; dir : sens de la branche (1 vers la droite, -1 vers la gauche)
     const TITAN_BRANCHES = [
-      { key: 'coeur', name: 'Le Cœur', icon: '❤️', color: '#fb7185' },
-      { key: 'poing', name: 'Les Poings', icon: '👊', color: '#fbbf24' },
-      { key: 'canon', name: 'Les Canons', icon: '🔫', color: '#fb923c' },
-      { key: 'oeil', name: 'Le Regard', icon: '👁️', color: '#38bdf8', ultimate: true },
-      { key: 'jambe', name: 'Les Jambes', icon: '🦶', color: '#34d399' },
-      { key: 'couronne', name: 'La Couronne', icon: '👑', color: '#c084fc' }
+      { key: 'poing', axis: 'attaque', name: 'Les Poings', icon: '👊', color: '#fbbf24', x0: 190, y0: 0, dir: 1, requires: [] },
+      { key: 'canon', axis: 'attaque', name: 'Les Canons', icon: '🔫', color: '#fb923c', x0: 690, y0: 0, dir: 1, requires: ['poing'], lockText: 'Finissez les Poings' },
+      { key: 'oeil', axis: 'attaque', name: 'Le Laser', icon: '👁️', color: '#38bdf8', x0: 1190, y0: 0, dir: 1, requires: ['canon'], lockText: 'Finissez les Canons' },
+      { key: 'coeur', axis: 'defense', name: 'Le Cœur · vie', icon: '❤️', color: '#fb7185', x0: -190, y0: -210, dir: -1, requires: [] },
+      { key: 'jambe', axis: 'defense', name: 'Les Jambes · vitesse', icon: '🦶', color: '#34d399', x0: -190, y0: 210, dir: -1, requires: [] },
+      { key: 'couronne', axis: 'defense', name: "La Couronne · l'armée", icon: '👑', color: '#c084fc', x0: -690, y0: 0, dir: -1, requires: ['coeur', 'jambe'], lockText: 'Finissez le Cœur et les Jambes' }
     ];
     const TITAN_BRANCH_MAP = {};
     TITAN_BRANCHES.forEach((b) => { TITAN_BRANCH_MAP[b.key] = b; });
-    // Le Regard est la branche ultime : il faut d'abord maîtriser deux autres branches
-    const TITAN_ULTIMATE_REQUIRED = 2;
-    // ring : distance au centre (4 = compétence ultime de la branche) ; offset : décalage latéral
+    // ring : rang dans la branche (4 = compétence ultime) ; offset : décalage vertical
     const TITAN_TREE = [
-      { id: 'eveil', branch: null, ring: 0, offset: 0, icon: '✨', name: 'Éveil', desc: "Le Titan ouvre les yeux. Ouvre les voies de son évolution. Le Regard, la voie ultime, s'ouvre quand deux autres branches sont complètes.", cost: 3, scale: 1, max: 1, parent: null },
+      { id: 'eveil', branch: null, ring: 0, offset: 0, icon: '✨', name: 'Éveil', desc: "Le Titan ouvre les yeux. Deux axes s'offrent à lui. ⚔️ ATTAQUE, vers la droite : les Poings, puis les Canons, puis le Laser. Chaque branche s'ouvre quand la précédente est complète, et chacune coûte plus que la précédente. 🛡️ DÉFENSE, vers la gauche : le Cœur (la vie) et les Jambes (la vitesse). Quand les deux sont complètes, un chemin s'ouvre vers la Couronne, qui renforce toute l'armée.", cost: 3, scale: 1, max: 1, parent: null },
 
-      // ❤️ Le Cœur : tenir au contact
+      // ⚔️ 1. Les Poings : la mêlée (la branche d'attaque la moins chère)
+      { id: 'poing_1', branch: 'poing', ring: 1, offset: 0, icon: '🥊', name: "Poings d'Airain", desc: "+30% de dégâts par niveau. Ses bras s'épaississent.", cost: 3, scale: 1.4, max: 5, parent: 'eveil' },
+      { id: 'poing_2', branch: 'poing', ring: 2, offset: -1, icon: '🌀', name: 'Balayage', desc: "Chaque coup touche 3 ennemis de plus, avec 25% d'allonge en plus par niveau.", cost: 6, scale: 1.5, max: 3, parent: 'poing_1' },
+      { id: 'poing_3', branch: 'poing', ring: 2, offset: 1, icon: '💥', name: 'Onde de Choc', desc: "Capacité (J) : frappe le sol et repousse les ennemis les plus proches (8, puis 4 de plus par niveau).", cost: 8, scale: 1.5, max: 3, parent: 'poing_1' },
+      { id: 'poing_5', branch: 'poing', ring: 3, offset: -1.4, icon: '🔨', name: 'Frénésie', desc: "+15% de vitesse de frappe par niveau.", cost: 9, scale: 1.5, max: 3, parent: 'poing_2' },
+      { id: 'poing_6', branch: 'poing', ring: 3, offset: 0, icon: '🦍', name: 'Brise-Rangs', desc: "Ses coups projettent les ennemis en arrière et les étourdissent un instant.", cost: 12, scale: 1.6, max: 2, parent: 'poing_2' },
+      { id: 'poing_4', branch: 'poing', ring: 3, offset: 1.4, icon: '🌋', name: 'Séisme', desc: "L'Onde de Choc ralentit les survivants et se recharge 30% plus vite.", cost: 18, scale: 1, max: 1, parent: 'poing_3' },
+      { id: 'poing_7', branch: 'poing', ring: 4, offset: 0, icon: '☄️', name: 'Coup Fatal', desc: "Ultime des Poings : un coup sur quatre frappe trois fois plus fort et fait trembler le sol. Compléter les Poings ouvre les Canons.", cost: 28, scale: 1, max: 1, parent: 'poing_6' },
+
+      // ⚔️ 2. Les Canons : des balles, jusqu'à la mitrailleuse
+      { id: 'canon_1', branch: 'canon', ring: 1, offset: 0, icon: '🔫', name: "Canon d'Épaule", desc: "Un canon pousse sur son épaule et tire seul sur l'ennemi le plus proche. Chaque balle s'arrête dans sa cible. +30% de dégâts par niveau suivant.", cost: 5, scale: 1.45, max: 4, parent: 'poing_7' },
+      { id: 'canon_2', branch: 'canon', ring: 2, offset: -1, icon: '⚙️', name: 'Culasse Rapide', desc: "Les canons tirent 15% plus vite par niveau.", cost: 10, scale: 1.5, max: 3, parent: 'canon_1' },
+      { id: 'canon_3', branch: 'canon', ring: 2, offset: 1, icon: '🎯', name: 'Second Canon', desc: "Un canon de plus par niveau, chacun sur sa propre cible.", cost: 14, scale: 1.7, max: 2, parent: 'canon_1' },
+      { id: 'canon_4', branch: 'canon', ring: 3, offset: -1.4, icon: '📍', name: 'Balles Perforantes', desc: "Chaque balle traverse 1 ennemi de plus par niveau, puis s'arrête.", cost: 14, scale: 1.6, max: 2, parent: 'canon_2' },
+      { id: 'canon_5', branch: 'canon', ring: 3, offset: 0, icon: '🔭', name: 'Lunette', desc: "+25% de portée par niveau. Les canons s'allongent.", cost: 12, scale: 1.5, max: 2, parent: 'canon_2' },
+      { id: 'canon_6', branch: 'canon', ring: 3, offset: 1.4, icon: '🧨', name: 'Munitions Lourdes', desc: "+40% de dégâts par balle et un recul qui repousse la cible, par niveau.", cost: 16, scale: 1.6, max: 2, parent: 'canon_3' },
+      { id: 'canon_7', branch: 'canon', ring: 4, offset: 0, icon: '🌪️', name: 'Mitrailleuse', desc: "Ultime des Canons : les canons deviennent des mitrailleuses et lâchent régulièrement une rafale quatre fois plus rapide, plus longue à chaque niveau. Compléter les Canons ouvre le Laser.", cost: 28, scale: 1.6, max: 3, parent: 'canon_5' },
+
+      // ⚔️ 3. Le Laser : lent à charger, dévastateur à la fin
+      { id: 'oeil_1', branch: 'oeil', ring: 1, offset: 0, icon: '🔆', name: 'Regard Ardent', desc: "Capacité (K). Un canon de lumière se charge pendant la bataille : 45 s, et il est vide au début de chaque vague. Une fois prêt, il brille : le rayon brûle les 3 premiers ennemis sur sa ligne. +50% de dégâts par niveau suivant.", cost: 24, scale: 1.5, max: 3, parent: 'canon_7' },
+      { id: 'oeil_2', branch: 'oeil', ring: 2, offset: -1, icon: '🎯', name: 'Œil Perçant', desc: "Le rayon porte 25% plus loin, brûle 25% plus fort et perce 2 ennemis de plus par niveau.", cost: 22, scale: 1.5, max: 3, parent: 'oeil_1' },
+      { id: 'oeil_3', branch: 'oeil', ring: 2, offset: 1, icon: '🔱', name: 'Prisme', desc: "Le rayon se divise : +2 faisceaux par niveau. Des cristaux entourent le canon.", cost: 34, scale: 1.6, max: 2, parent: 'oeil_1' },
+      { id: 'oeil_6', branch: 'oeil', ring: 3, offset: -1.4, icon: '🏹', name: 'Œil du Chasseur', desc: "Le rayon inflige +60% de dégâts aux Tanks, Mages, Boss et Petits Titans par niveau.", cost: 26, scale: 1.5, max: 2, parent: 'oeil_2' },
+      { id: 'oeil_8', branch: 'oeil', ring: 3, offset: 0, icon: '⚛️', name: 'Réacteur', desc: "Le canon de lumière se charge 20% plus vite par niveau (jusqu'à 23 s).", cost: 26, scale: 1.5, max: 3, parent: 'oeil_1' },
+      { id: 'oeil_5', branch: 'oeil', ring: 3, offset: 1.4, icon: '🌅', name: 'Regard Persistant', desc: "Le rayon dure 1 s de plus par niveau.", cost: 30, scale: 1.6, max: 2, parent: 'oeil_3' },
+      { id: 'oeil_4', branch: 'oeil', ring: 4, offset: 0, icon: '☀️', name: 'Jugement Solaire', desc: "Ultime du Laser : le rayon ne s'épuise plus. Il traverse toute sa ligne, brûle deux fois plus fort et pétrifie tout ce qu'il touche.", cost: 70, scale: 1, max: 1, parent: 'oeil_8' },
+
+      // 🛡️ Le Cœur : la vie
       { id: 'coeur_1', branch: 'coeur', ring: 1, offset: 0, icon: '🪨', name: 'Cœur de Pierre', desc: "+30% de PV maximum par niveau. Un cœur incandescent s'allume dans son torse.", cost: 3, scale: 1.4, max: 5, parent: 'eveil' },
       { id: 'coeur_2', branch: 'coeur', ring: 2, offset: -1, icon: '🩸', name: "Sang d'Encre", desc: "Régénère 1,5% de ses PV par seconde par niveau.", cost: 8, scale: 1.5, max: 3, parent: 'coeur_1' },
       { id: 'coeur_3', branch: 'coeur', ring: 2, offset: 1, icon: '🐢', name: 'Carapace', desc: "Réduit tous les dégâts subis de 12% par niveau. Des plaques couvrent son corps.", cost: 8, scale: 1.5, max: 3, parent: 'coeur_1' },
       { id: 'coeur_5', branch: 'coeur', ring: 3, offset: -1.4, icon: '🧛', name: 'Festin de Guerre', desc: "Récupère 6% des dégâts de ses coups et de son piétinement par niveau.", cost: 12, scale: 1.5, max: 2, parent: 'coeur_2' },
       { id: 'coeur_7', branch: 'coeur', ring: 3, offset: 0, icon: '🛡️', name: 'Bastion Vivant', desc: "Sous 40% de ses PV, le Titan subit 15% de dégâts en moins et régénère 1% de PV par seconde de plus, par niveau.", cost: 14, scale: 1.5, max: 2, parent: 'coeur_3' },
       { id: 'coeur_6', branch: 'coeur', ring: 3, offset: 1.4, icon: '🌑', name: "Peau d'Obsidienne", desc: "Réduit de 20% par niveau les dégâts des flèches et des orbes.", cost: 12, scale: 1.5, max: 2, parent: 'coeur_3' },
-      { id: 'coeur_4', branch: 'coeur', ring: 4, offset: 0, icon: '🔥', name: 'Seconde Vie', desc: "Compétence ultime du Cœur : une fois par bataille, le Titan se relève à 50% de ses PV quand il tombe.", cost: 35, scale: 1, max: 1, parent: 'coeur_7' },
+      { id: 'coeur_4', branch: 'coeur', ring: 4, offset: 0, icon: '🔥', name: 'Seconde Vie', desc: "Ultime du Cœur : une fois par bataille, le Titan se relève à 50% de ses PV quand il tombe.", cost: 35, scale: 1, max: 1, parent: 'coeur_7' },
 
-      // 👊 Les Poings : la mêlée
-      { id: 'poing_1', branch: 'poing', ring: 1, offset: 0, icon: '🥊', name: "Poings d'Airain", desc: "+30% de dégâts par niveau. Ses bras s'épaississent.", cost: 3, scale: 1.4, max: 5, parent: 'eveil' },
-      { id: 'poing_2', branch: 'poing', ring: 2, offset: -1, icon: '🌀', name: 'Balayage', desc: "Chaque coup touche 3 ennemis de plus, avec 25% d'allonge en plus par niveau.", cost: 7, scale: 1.5, max: 3, parent: 'poing_1' },
-      { id: 'poing_3', branch: 'poing', ring: 2, offset: 1, icon: '💥', name: 'Onde de Choc', desc: "Capacité (J) : frappe le sol et repousse les ennemis les plus proches (8, puis 4 de plus par niveau).", cost: 9, scale: 1.5, max: 3, parent: 'poing_1' },
-      { id: 'poing_5', branch: 'poing', ring: 3, offset: -1.4, icon: '🔨', name: 'Frénésie', desc: "+15% de vitesse de frappe par niveau.", cost: 11, scale: 1.5, max: 3, parent: 'poing_2' },
-      { id: 'poing_6', branch: 'poing', ring: 3, offset: 0, icon: '🦍', name: 'Brise-Rangs', desc: "Ses coups projettent les ennemis en arrière et les étourdissent un instant.", cost: 14, scale: 1.6, max: 2, parent: 'poing_2' },
-      { id: 'poing_4', branch: 'poing', ring: 3, offset: 1.4, icon: '🌋', name: 'Séisme', desc: "L'Onde de Choc ralentit les survivants et se recharge 30% plus vite.", cost: 22, scale: 1, max: 1, parent: 'poing_3' },
-      { id: 'poing_7', branch: 'poing', ring: 4, offset: 0, icon: '☄️', name: 'Coup Fatal', desc: "Compétence ultime des Poings : un coup sur quatre frappe trois fois plus fort et fait trembler le sol.", cost: 35, scale: 1, max: 1, parent: 'poing_6' },
-
-      // 🔫 Les Canons : des balles, jusqu'à la mitrailleuse
-      { id: 'canon_1', branch: 'canon', ring: 1, offset: 0, icon: '🔫', name: "Canon d'Épaule", desc: "Un canon pousse sur son épaule et tire seul sur l'ennemi le plus proche. Chaque balle s'arrête dans sa cible. +30% de dégâts par niveau suivant.", cost: 4, scale: 1.45, max: 4, parent: 'eveil' },
-      { id: 'canon_2', branch: 'canon', ring: 2, offset: -1, icon: '⚙️', name: 'Culasse Rapide', desc: "Les canons tirent 15% plus vite par niveau.", cost: 8, scale: 1.5, max: 3, parent: 'canon_1' },
-      { id: 'canon_3', branch: 'canon', ring: 2, offset: 1, icon: '🎯', name: 'Second Canon', desc: "Un canon de plus par niveau, chacun sur sa propre cible.", cost: 12, scale: 1.7, max: 2, parent: 'canon_1' },
-      { id: 'canon_4', branch: 'canon', ring: 3, offset: -1.4, icon: '📍', name: 'Balles Perforantes', desc: "Chaque balle traverse 1 ennemi de plus par niveau, puis s'arrête.", cost: 12, scale: 1.6, max: 2, parent: 'canon_2' },
-      { id: 'canon_5', branch: 'canon', ring: 3, offset: 0, icon: '🔭', name: 'Lunette', desc: "+25% de portée par niveau. Les canons s'allongent.", cost: 10, scale: 1.5, max: 2, parent: 'canon_2' },
-      { id: 'canon_6', branch: 'canon', ring: 3, offset: 1.4, icon: '🧨', name: 'Munitions Lourdes', desc: "+40% de dégâts par balle et un recul qui repousse la cible, par niveau.", cost: 14, scale: 1.6, max: 2, parent: 'canon_3' },
-      { id: 'canon_7', branch: 'canon', ring: 4, offset: 0, icon: '🌪️', name: 'Mitrailleuse', desc: "Compétence ultime des Canons : les canons deviennent des mitrailleuses et lâchent régulièrement une rafale quatre fois plus rapide. La rafale dure plus longtemps à chaque niveau.", cost: 24, scale: 1.6, max: 3, parent: 'canon_5' },
-
-      // 👁️ Le Regard : la voie ultime
-      { id: 'oeil_1', branch: 'oeil', ring: 1, offset: 0, icon: '🔆', name: 'Regard Ardent', desc: "Capacité ultime (K). Un canon de lumière se charge pendant la bataille (45 s, vide au début de chaque vague). Une fois prêt, il brille : le rayon brûle les 3 premiers ennemis sur sa ligne. +40% de dégâts par niveau.", cost: 18, scale: 1.6, max: 3, parent: 'eveil' },
-      { id: 'oeil_2', branch: 'oeil', ring: 2, offset: -1, icon: '🎯', name: 'Œil Perçant', desc: "Le rayon porte 25% plus loin, brûle 25% plus fort et perce 1 ennemi de plus par niveau.", cost: 18, scale: 1.6, max: 3, parent: 'oeil_1' },
-      { id: 'oeil_3', branch: 'oeil', ring: 2, offset: 1, icon: '🔱', name: 'Prisme', desc: "Le rayon se divise : +2 faisceaux par niveau. Des cristaux entourent le canon.", cost: 25, scale: 1.7, max: 2, parent: 'oeil_1' },
-      { id: 'oeil_6', branch: 'oeil', ring: 3, offset: -1.4, icon: '🏹', name: 'Œil du Chasseur', desc: "Le rayon inflige +40% de dégâts aux Tanks, Mages et Boss par niveau.", cost: 20, scale: 1.6, max: 2, parent: 'oeil_2' },
-      { id: 'oeil_8', branch: 'oeil', ring: 3, offset: 0, icon: '⚛️', name: 'Réacteur', desc: "Le canon de lumière se charge 20% plus vite par niveau.", cost: 22, scale: 1.6, max: 3, parent: 'oeil_1' },
-      { id: 'oeil_5', branch: 'oeil', ring: 3, offset: 1.4, icon: '🌅', name: 'Regard Persistant', desc: "Le rayon dure 0,6 s de plus par niveau.", cost: 22, scale: 1.6, max: 2, parent: 'oeil_3' },
-      { id: 'oeil_4', branch: 'oeil', ring: 4, offset: 0, icon: '🗿', name: 'Regard Pétrifiant', desc: "Compétence ultime du Regard : tout ce que le rayon touche est fortement ralenti.", cost: 45, scale: 1, max: 1, parent: 'oeil_8' },
-
-      // 🦶 Les Jambes : se déplacer, écraser
+      // 🛡️ Les Jambes : la vitesse
       { id: 'jambe_1', branch: 'jambe', ring: 1, offset: 0, icon: '👣', name: 'Foulée', desc: "+15% de vitesse par niveau.", cost: 3, scale: 1.45, max: 4, parent: 'eveil' },
       { id: 'jambe_2', branch: 'jambe', ring: 2, offset: -1, icon: '🐘', name: 'Piétinement', desc: "Le Titan écrase les 4 ennemis les plus proches de ses pieds : dégâts continus, plus forts à chaque niveau.", cost: 7, scale: 1.5, max: 3, parent: 'jambe_1' },
       { id: 'jambe_3', branch: 'jambe', ring: 2, offset: 1, icon: '🐂', name: 'Charge', desc: "Capacité (L) : fonce droit devant et renverse les premiers ennemis sur son passage, jusqu'à épuisement de l'élan.", cost: 9, scale: 1.5, max: 3, parent: 'jambe_1' },
       { id: 'jambe_6', branch: 'jambe', ring: 3, offset: -1.4, icon: '🦶', name: 'Pas Sismique', desc: "Le piétinement écrase 4 ennemis de plus par niveau et les ralentit.", cost: 12, scale: 1.6, max: 2, parent: 'jambe_2' },
       { id: 'jambe_7', branch: 'jambe', ring: 3, offset: 0, icon: '🛞', name: 'Inarrêtable', desc: "Pendant la Charge, le Titan subit 60% de dégâts en moins et fonce 30% plus longtemps.", cost: 16, scale: 1, max: 1, parent: 'jambe_3' },
       { id: 'jambe_5', branch: 'jambe', ring: 3, offset: 1.4, icon: '💨', name: 'Ruée', desc: "La Charge se recharge 20% plus vite et son élan renverse 50% d'ennemis de plus par niveau.", cost: 12, scale: 1.6, max: 2, parent: 'jambe_3' },
-      { id: 'jambe_4', branch: 'jambe', ring: 4, offset: 0, icon: '🗻', name: 'Colosse', desc: "Compétence ultime des Jambes : la taille du Titan augmente de 30% par niveau. Il devient une montagne.", cost: 30, scale: 1.8, max: 2, parent: 'jambe_7' },
+      { id: 'jambe_4', branch: 'jambe', ring: 4, offset: 0, icon: '🗻', name: 'Colosse', desc: "Ultime des Jambes : la taille du Titan augmente de 30% par niveau. Il devient une montagne.", cost: 30, scale: 1.8, max: 2, parent: 'jambe_7' },
 
-      // 👑 La Couronne : porter l'armée
-      { id: 'couronne_1', branch: 'couronne', ring: 1, offset: 0, icon: '🎖️', name: 'Aura de Guerre', desc: "Les alliés dans son aura infligent +12% de dégâts par niveau. Une couronne pousse sur sa tête.", cost: 4, scale: 1.45, max: 5, parent: 'eveil' },
-      { id: 'couronne_2', branch: 'couronne', ring: 2, offset: -1, icon: '💚', name: 'Bénédiction', desc: "L'aura soigne les alliés de 1,5% de leurs PV par seconde par niveau.", cost: 8, scale: 1.5, max: 3, parent: 'couronne_1' },
-      { id: 'couronne_3', branch: 'couronne', ring: 2, offset: 1, icon: '😱', name: 'Terreur', desc: "Les ennemis dans l'aura sont ralentis.", cost: 12, scale: 1.6, max: 2, parent: 'couronne_1' },
-      { id: 'couronne_5', branch: 'couronne', ring: 3, offset: -1.4, icon: '📯', name: 'Cri de Ralliement', desc: "Capacité (I) : soigne de 35% toute l'armée autour du Titan.", cost: 18, scale: 1, max: 1, parent: 'couronne_2' },
-      { id: 'couronne_6', branch: 'couronne', ring: 3, offset: 0, icon: '🏰', name: 'Étendard', desc: "Les alliés dans l'aura subissent 8% de dégâts en moins par niveau.", cost: 14, scale: 1.5, max: 3, parent: 'couronne_2' },
-      { id: 'couronne_4', branch: 'couronne', ring: 3, offset: 1.4, icon: '💰', name: 'Tribut', desc: "Chaque ennemi tué par le Titan rapporte de l'or et de l'encre au Général.", cost: 16, scale: 1.6, max: 3, parent: 'couronne_3' },
-      { id: 'couronne_7', branch: 'couronne', ring: 4, offset: 0, icon: '👑', name: 'Majesté', desc: "Compétence ultime de la Couronne : l'aura est 50% plus grande et son bonus de dégâts 50% plus fort.", cost: 35, scale: 1, max: 1, parent: 'couronne_6' }
+      // 🛡️ La Couronne : renforcer l'armée, une fois le Cœur et les Jambes complets
+      { id: 'couronne_1', branch: 'couronne', ring: 1, offset: 0, icon: '🎖️', name: 'Aura de Guerre', desc: "Les alliés dans son aura infligent +12% de dégâts par niveau. Une couronne pousse sur sa tête.", cost: 6, scale: 1.45, max: 5, parent: 'coeur_4', parents: ['coeur_4', 'jambe_4'] },
+      { id: 'couronne_2', branch: 'couronne', ring: 2, offset: -1, icon: '💚', name: 'Bénédiction', desc: "L'aura soigne les alliés de 1,5% de leurs PV par seconde par niveau.", cost: 10, scale: 1.5, max: 3, parent: 'couronne_1' },
+      { id: 'couronne_3', branch: 'couronne', ring: 2, offset: 1, icon: '😱', name: 'Terreur', desc: "Les ennemis dans l'aura sont ralentis.", cost: 14, scale: 1.6, max: 2, parent: 'couronne_1' },
+      { id: 'couronne_5', branch: 'couronne', ring: 3, offset: -1.4, icon: '📯', name: 'Cri de Ralliement', desc: "Capacité (I) : soigne de 35% toute l'armée autour du Titan.", cost: 20, scale: 1, max: 1, parent: 'couronne_2' },
+      { id: 'couronne_6', branch: 'couronne', ring: 3, offset: 0, icon: '🏰', name: 'Étendard', desc: "Les alliés dans l'aura subissent 8% de dégâts en moins par niveau.", cost: 16, scale: 1.5, max: 3, parent: 'couronne_2' },
+      { id: 'couronne_4', branch: 'couronne', ring: 3, offset: 1.4, icon: '💰', name: 'Tribut', desc: "Chaque ennemi tué par le Titan rapporte de l'or et de l'encre au Général.", cost: 18, scale: 1.6, max: 3, parent: 'couronne_3' },
+      { id: 'couronne_7', branch: 'couronne', ring: 4, offset: 0, icon: '👑', name: 'Majesté', desc: "Ultime de la Couronne : l'aura est 50% plus grande et son bonus de dégâts 50% plus fort.", cost: 35, scale: 1, max: 1, parent: 'couronne_6' }
     ];
     const titanNodeMap = {};
     TITAN_TREE.forEach((n) => { titanNodeMap[n.id] = n; });
@@ -6756,16 +7147,12 @@
       return TITAN_TREE.every((n) => n.branch !== key || titanLevel(n.id) >= n.max);
     }
 
-    function titanCompletedBranches() {
-      return TITAN_BRANCHES.filter((b) => !b.ultimate && titanBranchComplete(b.key)).length;
-    }
-
-    function isTitanUltimateOpen() {
-      return titanCompletedBranches() >= TITAN_ULTIMATE_REQUIRED;
+    function titanBranchOpen(key) {
+      return TITAN_BRANCH_MAP[key].requires.every((req) => titanBranchComplete(req));
     }
 
     function isTitanNodeUnlocked(node) {
-      if (node.branch && TITAN_BRANCH_MAP[node.branch].ultimate && !isTitanUltimateOpen()) return false;
+      if (node.branch && !titanBranchOpen(node.branch)) return false;
       return !node.parent || titanLevel(node.parent) >= 1;
     }
 
@@ -6774,25 +7161,30 @@
       return TITAN_ABILITIES.beam.cooldown * Math.pow(0.8, titanLevel('oeil_8'));
     }
 
-    // Une ancienne partie peut dépasser les nouveaux maximums ou avoir ouvert le Regard trop tôt :
+    // Une ancienne partie peut dépasser les nouveaux maximums ou avoir ouvert une branche trop tôt :
     // les points en trop sont rendus en âmes.
     function sanitizeTitanLevels() {
       let refund = 0;
-      const ultimateOpen = isTitanUltimateOpen();
+      const refundNode = (node, from) => {
+        const level = titanLevel(node.id);
+        for (let k = from; k < level; k++) refund += Math.round(node.cost * Math.pow(node.scale, k));
+        if (from > 0) titan.levels[node.id] = from;
+        else delete titan.levels[node.id];
+      };
       for (const id of Object.keys(titan.levels)) {
         const node = titanNodeMap[id];
-        const level = titan.levels[id] || 0;
-        const keep = !node ? 0 : (TITAN_BRANCH_MAP[node.branch] && TITAN_BRANCH_MAP[node.branch].ultimate && !ultimateOpen ? 0 : Math.min(level, node.max));
-        if (node) {
-          for (let k = keep; k < level; k++) refund += Math.round(node.cost * Math.pow(node.scale, k));
+        if (!node) delete titan.levels[id];
+        else if (titanLevel(id) > node.max) refundNode(node, node.max);
+      }
+      // Une branche fermée rend ses points ; cela peut fermer la suivante, d'où plusieurs passes
+      for (let pass = 0; pass < 3; pass++) {
+        for (const node of TITAN_TREE) {
+          if (node.branch && titanLevel(node.id) > 0 && !titanBranchOpen(node.branch)) refundNode(node, 0);
         }
-        if (keep > 0) titan.levels[id] = keep;
-        else delete titan.levels[id];
       }
       titan.souls += refund;
       return refund;
     }
-
     function resetTitanProgress() {
       titan.souls = 3;
       titan.soulsFraction = 0;
@@ -6929,6 +7321,7 @@
     }
 
     function titanAuraMultiplier(i, myTeam) {
+      if (myTeam === 1) return heraldList.length > 0 ? heraldMultiplier(i) : 1;
       if (myTeam !== 0 || titan.idx < 0 || titan.auraDamage <= 0) return 1;
       const dSq = (pos_x[i] - pos_x[titan.idx]) ** 2 + (pos_y[i] - pos_y[titan.idx]) ** 2;
       return dSq <= titan.auraRadius * titan.auraRadius ? 1 + titan.auraDamage : 1;
@@ -7320,10 +7713,12 @@
       const y = pos_y[i];
       const length = titanBeamLength(r);
       const width = Math.max(26, r * 0.42);
-      const tickDamage = damage[i] * 3.5 * (1 + (titanLevel('oeil_1') - 1) * 0.4) * (1 + titanLevel('oeil_2') * 0.25) * 0.1;
-      const hunter = 1 + titanLevel('oeil_6') * 0.4;
-      const petrify = titanLevel('oeil_4') > 0;
-      const pierce = TITAN_BEAM_PIERCE + titanLevel('oeil_2');
+      const solar = titanLevel('oeil_4') > 0;
+      const tickDamage = damage[i] * 3.5 * (1 + (titanLevel('oeil_1') - 1) * 0.5) * (1 + titanLevel('oeil_2') * 0.25) * (solar ? 2 : 1) * 0.1;
+      const hunter = 1 + titanLevel('oeil_6') * 0.6;
+      const petrify = solar;
+      // Jugement Solaire : le rayon ne s'épuise plus
+      const pierce = solar ? ZONE_MAX : TITAN_BEAM_PIERCE + titanLevel('oeil_2') * 2;
       const rays = titanBeamRays();
       titan.beamEnds.length = rays.length;
       for (let k = 0; k < rays.length; k++) {
@@ -7390,7 +7785,7 @@
       } else if (key === 'beam') {
         const lingering = titanLevel('oeil_5');
         titan.cooldowns.beam = titanBeamCooldown();
-        titan.beamTime = 1.7 + lingering * 0.6;
+        titan.beamTime = 1.7 + lingering * 1.0;
         addRing(x, y, r * 1.6, '#38bdf8', 0.4);
         titan.beamEnds = [];
         titan.beamTickTimer = 0;
@@ -7777,12 +8172,142 @@
     let titanTreeOpenedAt = 0;
 
     function titanNodePosition(node) {
-      if (!node.branch) return { x: 500, y: 500 };
-      const index = TITAN_BRANCHES.findIndex((b) => b.key === node.branch);
-      const base = -90 + index * (360 / TITAN_BRANCHES.length);
-      const radii = [0, 215, 322, 424, 520];
-      const angle = (base + node.offset * (node.ring === 2 ? 15 : (node.ring === 3 ? 12 : 0))) * Math.PI / 180;
-      return { x: 500 + Math.cos(angle) * radii[node.ring], y: 500 + Math.sin(angle) * radii[node.ring] };
+      if (!node.branch) return { x: 0, y: 0 };
+      const b = TITAN_BRANCH_MAP[node.branch];
+      const spread = node.ring === 2 ? 80 : (node.ring === 3 ? 90 : 0);
+      return { x: b.x0 + (node.ring - 1) * 118 * b.dir, y: b.y0 + node.offset * spread };
+    }
+
+    // ---- Vue de l'arbre : on s'y déplace en glissant, on zoome à la molette ou à deux doigts ----
+    const TITAN_TREE_BOUNDS = { minX: -1090, maxX: 1600, minY: -560, maxY: 480 };
+    const titanTreeView = { cx: 255, cy: -40, scale: 1, w: 0, h: 0, fitted: false, dragged: false, pointers: new Map(), pan: null, pinch: null };
+
+    function titanTreeRect() {
+      return document.getElementById('titanTreeSvg').getBoundingClientRect();
+    }
+
+    function applyTitanTreeView() {
+      const svg = document.getElementById('titanTreeSvg');
+      const rect = titanTreeRect();
+      if (rect.width < 10 || rect.height < 10) return;
+      const b = TITAN_TREE_BOUNDS;
+      const aspect = rect.width / rect.height;
+      let w = b.maxX - b.minX;
+      let h = w / aspect;
+      if (h < b.maxY - b.minY) {
+        h = b.maxY - b.minY;
+        w = h * aspect;
+      }
+      const v = titanTreeView;
+      v.scale = Math.max(1, Math.min(6, v.scale));
+      v.w = w / v.scale;
+      v.h = h / v.scale;
+      v.cx = Math.max(b.minX, Math.min(b.maxX, v.cx));
+      v.cy = Math.max(b.minY, Math.min(b.maxY, v.cy));
+      svg.setAttribute('viewBox', `${v.cx - v.w / 2} ${v.cy - v.h / 2} ${v.w} ${v.h}`);
+    }
+
+    function fitTitanTreeView() {
+      const rect = titanTreeRect();
+      const v = titanTreeView;
+      // Sur téléphone, on commence au plus près de l'Éveil et des premières compétences
+      const small = rect.width < 640;
+      const b = TITAN_TREE_BOUNDS;
+      const aspect = rect.width / Math.max(1, rect.height);
+      const widthAtOne = Math.max(b.maxX - b.minX, (b.maxY - b.minY) * aspect);
+      // On voit environ 1 900 unités de large (900 sur téléphone), autour de l'Éveil
+      v.scale = widthAtOne / (small ? 900 : 1900);
+      v.cx = small ? 60 : 200;
+      v.cy = small ? 0 : -60;
+      v.fitted = true;
+      applyTitanTreeView();
+    }
+
+    function zoomTitanTree(factor, clientX, clientY) {
+      const rect = titanTreeRect();
+      const v = titanTreeView;
+      const px = clientX === undefined ? 0.5 : (clientX - rect.left) / rect.width;
+      const py = clientY === undefined ? 0.5 : (clientY - rect.top) / rect.height;
+      const worldX = v.cx - v.w / 2 + px * v.w;
+      const worldY = v.cy - v.h / 2 + py * v.h;
+      v.scale *= factor;
+      applyTitanTreeView();
+      // Le point sous le curseur ne bouge pas
+      v.cx = worldX - (px - 0.5) * v.w;
+      v.cy = worldY - (py - 0.5) * v.h;
+      applyTitanTreeView();
+    }
+
+    function setupTitanTreeNavigation() {
+      const svg = document.getElementById('titanTreeSvg');
+      const v = titanTreeView;
+      svg.addEventListener('pointerdown', (e) => {
+        v.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (v.pointers.size === 1) {
+          v.dragged = false;
+          v.pan = { x: e.clientX, y: e.clientY, cx: v.cx, cy: v.cy };
+          v.pinch = null;
+        } else if (v.pointers.size === 2) {
+          const [a, b] = [...v.pointers.values()];
+          v.pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, scale: v.scale };
+          v.pan = null;
+          v.dragged = true;
+        }
+      });
+      window.addEventListener('pointermove', (e) => {
+        if (!v.pointers.has(e.pointerId)) return;
+        v.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const rect = titanTreeRect();
+        if (v.pan) {
+          const dx = e.clientX - v.pan.x;
+          const dy = e.clientY - v.pan.y;
+          if (Math.hypot(dx, dy) > 6) v.dragged = true;
+          if (v.dragged) {
+            v.cx = v.pan.cx - dx * (v.w / rect.width);
+            v.cy = v.pan.cy - dy * (v.h / rect.height);
+            applyTitanTreeView();
+          }
+        } else if (v.pinch && v.pointers.size >= 2) {
+          const [a, b] = [...v.pointers.values()];
+          const dist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+          const target = v.pinch.scale * dist / v.pinch.dist;
+          zoomTitanTree(target / v.scale, (a.x + b.x) / 2, (a.y + b.y) / 2);
+        }
+      });
+      const release = (e) => {
+        v.pointers.delete(e.pointerId);
+        if (v.pointers.size === 0) {
+          v.pan = null;
+          v.pinch = null;
+        } else if (v.pointers.size === 1) {
+          const [p] = [...v.pointers.values()];
+          v.pan = { x: p.x, y: p.y, cx: v.cx, cy: v.cy };
+          v.pinch = null;
+        }
+      };
+      window.addEventListener('pointerup', release);
+      window.addEventListener('pointercancel', release);
+      svg.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const pixels = e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY;
+        zoomTitanTree(Math.exp(-pixels * 0.0018), e.clientX, e.clientY);
+      }, { passive: false });
+      document.getElementById('titanZoomInBtn').addEventListener('click', () => zoomTitanTree(1.35));
+      document.getElementById('titanZoomOutBtn').addEventListener('click', () => zoomTitanTree(1 / 1.35));
+      document.getElementById('titanZoomFitBtn').addEventListener('click', fitTitanTreeView);
+      window.addEventListener('resize', () => {
+        if (titanTreeModal.classList.contains('open')) applyTitanTreeView();
+      });
+    }
+
+    function svgText(NS, x, y, text, attrs) {
+      const el = document.createElementNS(NS, 'text');
+      el.setAttribute('x', x);
+      el.setAttribute('y', y);
+      el.setAttribute('text-anchor', 'middle');
+      for (const [k, val] of Object.entries(attrs)) el.setAttribute(k, val);
+      el.textContent = text;
+      return el;
     }
 
     function renderTitanTree() {
@@ -7792,99 +8317,81 @@
       document.getElementById('titanTreeSouls').textContent = titan.souls;
 
       const stars = document.createElementNS(NS, 'g');
-      for (let k = 0; k < 90; k++) {
+      for (let k = 0; k < 160; k++) {
         const star = document.createElementNS(NS, 'circle');
-        const a = k * 2.399;
-        const d = 60 + (k * 37) % 440;
-        star.setAttribute('cx', 500 + Math.cos(a) * d);
-        star.setAttribute('cy', 500 + Math.sin(a) * d);
-        star.setAttribute('r', 0.8 + (k % 3) * 0.5);
-        star.setAttribute('fill', 'rgba(226, 232, 240, 0.4)');
+        star.setAttribute('cx', TITAN_TREE_BOUNDS.minX + ((k * 739) % 2690));
+        star.setAttribute('cy', TITAN_TREE_BOUNDS.minY + ((k * 397) % 1040));
+        star.setAttribute('r', 0.9 + (k % 3) * 0.6);
+        star.setAttribute('fill', 'rgba(226, 232, 240, 0.35)');
         stars.appendChild(star);
       }
       svg.appendChild(stars);
 
+      // Les deux axes, expliqués sur la carte même
+      svg.appendChild(svgText(NS, 900, -470, '⚔️ ATTAQUE', { class: 'titan-axis-label', fill: '#fbbf24' }));
+      svg.appendChild(svgText(NS, 900, -425, "Poings → Canons → Laser : chaque branche s'ouvre quand la précédente est complète", { class: 'titan-axis-hint' }));
+      svg.appendChild(svgText(NS, -640, -470, '🛡️ DÉFENSE', { class: 'titan-axis-label', fill: '#34d399' }));
+      svg.appendChild(svgText(NS, -640, -425, "Cœur (vie) et Jambes (vitesse), puis la Couronne pour toute l'armée", { class: 'titan-axis-hint' }));
+
       for (const node of TITAN_TREE) {
-        if (!node.parent) continue;
-        const a = titanNodePosition(titanNodeMap[node.parent]);
-        const b = titanNodePosition(node);
-        const line = document.createElementNS(NS, 'line');
-        line.setAttribute('x1', a.x);
-        line.setAttribute('y1', a.y);
-        line.setAttribute('x2', b.x);
-        line.setAttribute('y2', b.y);
-        const branch = TITAN_BRANCHES.find((br) => br.key === node.branch);
-        const lit = titanLevel(node.id) > 0;
-        line.setAttribute('stroke', lit ? branch.color : 'rgba(148, 163, 184, 0.28)');
-        line.setAttribute('stroke-width', lit ? 5 : 2.5);
-        svg.appendChild(line);
+        for (const parentId of node.parents || (node.parent ? [node.parent] : [])) {
+          const a = titanNodePosition(titanNodeMap[parentId]);
+          const b = titanNodePosition(node);
+          const line = document.createElementNS(NS, 'line');
+          line.setAttribute('x1', a.x);
+          line.setAttribute('y1', a.y);
+          line.setAttribute('x2', b.x);
+          line.setAttribute('y2', b.y);
+          const branch = TITAN_BRANCH_MAP[node.branch];
+          const lit = titanLevel(node.id) > 0;
+          const bridge = titanNodeMap[parentId].branch !== node.branch;
+          line.setAttribute('stroke', lit ? branch.color : (bridge && titanBranchOpen(node.branch) ? '#fbbf24' : 'rgba(148, 163, 184, 0.28)'));
+          line.setAttribute('stroke-width', lit ? 5 : (bridge ? 4 : 2.5));
+          if (bridge && !titanBranchOpen(node.branch)) line.setAttribute('stroke-dasharray', '10 10');
+          svg.appendChild(line);
+        }
       }
 
-      const ultimateOpen = isTitanUltimateOpen();
-      TITAN_BRANCHES.forEach((branch, index) => {
-        const angle = (-90 + index * (360 / TITAN_BRANCHES.length)) * Math.PI / 180;
-        const label = document.createElementNS(NS, 'text');
-        // Sur les côtés, le nom s'écarte de la compétence ultime de la branche
-        const side = Math.abs(Math.cos(angle)) > 0.5;
-        label.setAttribute('x', 500 + Math.cos(angle) * 590);
-        label.setAttribute('y', 500 + Math.sin(angle) * 590 + (side ? Math.sign(Math.sin(angle)) * 64 + 7 : (Math.sin(angle) < -0.5 ? 18 : 7)));
-        label.setAttribute('text-anchor', 'middle');
-        label.setAttribute('class', 'titan-branch-label');
-        label.setAttribute('fill', branch.color);
-        if (branch.ultimate) {
-          label.textContent = ultimateOpen ? `${branch.name} · ULTIME` : `🔒 ${branch.name} · ULTIME (${titanCompletedBranches()}/${TITAN_ULTIMATE_REQUIRED})`;
-        } else {
-          label.textContent = titanBranchComplete(branch.key) ? `${branch.name} ✓` : branch.name;
-        }
-        svg.appendChild(label);
-      });
+      for (const branch of TITAN_BRANCHES) {
+        const open = titanBranchOpen(branch.key);
+        const done = titanBranchComplete(branch.key);
+        const cx = branch.x0 + 177 * branch.dir;
+        const y = branch.y0 === 0 ? -205 : (branch.y0 < 0 ? branch.y0 - 172 : branch.y0 + 205);
+        svg.appendChild(svgText(NS, cx, y, `${open ? '' : '🔒 '}${branch.icon} ${branch.name}${done ? ' ✓' : ''}`, { class: 'titan-branch-label', fill: branch.color }));
+        if (!open) svg.appendChild(svgText(NS, cx, y + 26, branch.lockText, { class: 'titan-axis-hint' }));
+      }
 
       for (const node of TITAN_TREE) {
-        if (!node.branch) continue;
         const pos = titanNodePosition(node);
         const level = titanLevel(node.id);
         const unlocked = isTitanNodeUnlocked(node);
         const maxed = level >= node.max;
         const canBuy = unlocked && !maxed && titan.souls >= titanNodeCost(node);
-        const branch = TITAN_BRANCHES.find((br) => br.key === node.branch);
+        const color = node.branch ? TITAN_BRANCH_MAP[node.branch].color : '#fbbf24';
+        const size = node.branch ? 42 : 54;
         const group = document.createElementNS(NS, 'g');
         group.setAttribute('class', 'titan-node');
         group.setAttribute('role', 'button');
         group.setAttribute('aria-label', node.name);
         group.addEventListener('click', () => {
+          if (titanTreeView.dragged) return;
           titan.selectedNode = node.id;
           renderTitanTree();
         });
-
         const circle = document.createElementNS(NS, 'circle');
         circle.setAttribute('cx', pos.x);
         circle.setAttribute('cy', pos.y);
-        circle.setAttribute('r', 42);
+        circle.setAttribute('r', size);
         circle.setAttribute('fill', level > 0 ? 'rgba(30, 41, 59, 0.98)' : 'rgba(15, 23, 42, 0.96)');
-        circle.setAttribute('stroke', maxed ? '#34d399' : (canBuy ? '#fbbf24' : (level > 0 ? branch.color : (unlocked ? 'rgba(148, 163, 184, 0.6)' : 'rgba(148, 163, 184, 0.2)'))));
+        circle.setAttribute('stroke', maxed ? '#34d399' : (canBuy ? '#fbbf24' : (level > 0 ? color : (unlocked ? 'rgba(148, 163, 184, 0.6)' : 'rgba(148, 163, 184, 0.2)'))));
         circle.setAttribute('stroke-width', titan.selectedNode === node.id ? 7 : 4);
         group.appendChild(circle);
-
-        const icon = document.createElementNS(NS, 'text');
-        icon.setAttribute('x', pos.x);
-        icon.setAttribute('y', pos.y + 13);
-        icon.setAttribute('text-anchor', 'middle');
-        icon.setAttribute('font-size', '36');
-        icon.setAttribute('opacity', unlocked ? '1' : '0.35');
-        icon.textContent = node.icon;
-        group.appendChild(icon);
-
-        const pips = document.createElementNS(NS, 'text');
-        pips.setAttribute('x', pos.x);
-        pips.setAttribute('y', pos.y + 62);
-        pips.setAttribute('text-anchor', 'middle');
-        pips.setAttribute('font-size', '19');
-        pips.setAttribute('font-weight', '800');
-        pips.setAttribute('fill', maxed ? '#34d399' : (level > 0 ? branch.color : '#94a3b8'));
-        pips.textContent = `${level}/${node.max}`;
-        group.appendChild(pips);
+        group.appendChild(svgText(NS, pos.x, pos.y + size * 0.31, node.icon, { 'font-size': size * 0.86, opacity: unlocked ? '1' : '0.35' }));
+        group.appendChild(svgText(NS, pos.x, pos.y + size + 20, `${level}/${node.max}`, { 'font-size': '19', 'font-weight': '800', fill: maxed ? '#34d399' : (level > 0 ? color : '#94a3b8') }));
         svg.appendChild(group);
       }
+      if (!titanTreeView.fitted) fitTitanTreeView();
+      else applyTitanTreeView();
 
       const selected = titanNodeMap[titan.selectedNode] || titanNodeMap.eveil;
       const selectedLevel = titanLevel(selected.id);
@@ -7894,15 +8401,15 @@
       document.getElementById('titanInspTitle').textContent = `${selected.icon} ${selected.name} (${selectedLevel}/${selected.max})`;
       document.getElementById('titanInspDesc').textContent = selected.desc;
       const buy = document.getElementById('titanBuyBtn');
-      const ultimateBranch = selected.branch && TITAN_BRANCH_MAP[selected.branch].ultimate;
+      const branchClosed = selected.branch && !titanBranchOpen(selected.branch);
       if (net.role === 'host') {
         buy.textContent = "👁️ C'EST LE JOUEUR TITAN QUI CHOISIT";
         buy.disabled = true;
       } else if (selectedMaxed) {
         buy.textContent = '✓ AU MAXIMUM';
         buy.disabled = true;
-      } else if (!selectedUnlocked && ultimateBranch && !isTitanUltimateOpen()) {
-        buy.textContent = `🔒 COMPLÉTEZ ${TITAN_ULTIMATE_REQUIRED} BRANCHES (${titanCompletedBranches()}/${TITAN_ULTIMATE_REQUIRED})`;
+      } else if (branchClosed) {
+        buy.textContent = `🔒 ${TITAN_BRANCH_MAP[selected.branch].lockText.toUpperCase()}`;
         buy.disabled = true;
       } else if (!selectedUnlocked) {
         buy.textContent = `🔒 ${titanNodeMap[selected.parent].name.toUpperCase()} D'ABORD`;
@@ -7938,8 +8445,8 @@
     }
 
     function openTitanTree() {
-      renderTitanTree();
       titanTreeModal.classList.add('open');
+      renderTitanTree();
       titanTreeOpenedAt = performance.now();
     }
 
@@ -7963,6 +8470,7 @@
       if (buyTitanNode(titan.selectedNode)) renderTitanTree();
     });
     document.getElementById('titanTreeBtn').addEventListener('click', openTitanTree);
+    setupTitanTreeNavigation();
     document.getElementById('titanPreviewBtn').addEventListener('click', () => {
       titan.selectedNode = 'eveil';
       renderTitanTree();
@@ -8309,7 +8817,8 @@
         words[p++] = i;
         words[p++] = Math.max(0, Math.min(65535, pos_x[i] * NET_POS_SCALE));
         words[p++] = Math.max(0, Math.min(65535, pos_y[i] * NET_POS_SCALE));
-        words[p++] = (shape_type[i] << 9) | (team[i] << 8) | pct;
+        const netType = elite_kind[i] > 0 ? 8 + elite_kind[i] : shape_type[i];
+        words[p++] = (netType << 9) | (team[i] << 8) | (elite_flag[i] << 7) | pct;
       }
       let written = 0;
       for (let i = 0; i < MAX_PROJECTILES && written < projCount; i++) {
@@ -8385,9 +8894,12 @@
         const x = words[p++] / NET_POS_SCALE;
         const y = words[p++] / NET_POS_SCALE;
         const info = words[p++];
-        const type = info >> 9;
+        const netType = info >> 9;
+        const kind = netType >= 8 ? netType - 8 : 0;
+        const type = kind > 0 ? TYPE_BOSS : netType;
         const uTeam = (info >> 8) & 1;
-        const pct = info & 255;
+        const pct = info & 127;
+        elite_flag[i] = (info >> 7) & 1;
         const isNew = active[i] === 0 || shape_type[i] !== type || team[i] !== uTeam;
         if (isNew) {
           replica.fromX[i] = x;
@@ -8396,7 +8908,7 @@
           pos_y[i] = y;
           max_hp[i] = 100;
           hp[i] = pct;
-          radius[i] = UNIT_SPECS[type].radius;
+          radius[i] = kind > 0 ? ELITE_RADIUS : UNIT_SPECS[type].radius;
         } else {
           replica.fromX[i] = pos_x[i];
           replica.fromY[i] = pos_y[i];
@@ -8412,6 +8924,7 @@
         active[i] = 1;
         team[i] = uTeam;
         shape_type[i] = type;
+        elite_kind[i] = kind;
         replica.seen[i] = 1;
         if (type === TYPE_TITAN) titan.idx = i;
       }
@@ -8774,6 +9287,7 @@
           projectileSystem(subDt);
         }
         titanSystem(effectiveDt);
+        eliteSystem(effectiveDt);
         spellSystem(effectiveDt);
         paintMarchTrails(effectiveDt);
         checkBattleStatus(rawDt);

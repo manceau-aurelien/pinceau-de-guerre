@@ -14,11 +14,26 @@ Un jeu de stratégie où l'on dessine ses troupes au pinceau, où l'on trace ses
 * **🔥 Les sorts peints :** en combat, tracez au pinceau un trait de feu, de l'encre gelée ou une aquarelle de soin. Ils se débloquent et se renforcent dans la branche **Grimoire de guerre** de l'arbre de compétences : à vous de choisir entre une armée plus forte et des sorts plus puissants. Ils consomment une encre rare, qui se regagne lentement avec le temps et un peu à chaque ennemi vaincu. Chaque touche de peinture agit sur les unités les plus proches de son centre et s'épuise à mesure qu'elle les touche : un sort entame les premiers rangs, il ne traverse pas toute une armée. Le Feu et le Givre ne touchent que les ennemis, tandis que le Soin soigne tous vos alliés, Titan compris.
 * **⏸ La pause tactique :** figez la bataille et peignez vos sorts à tête reposée.
 * **⚖️ Des effets de zone qui s'épuisent :** l'orbe du Mage, le rayon, les balles et l'Onde de Choc du Titan, comme les sorts, frappent d'abord les ennemis les plus proches, puis s'arrêtent. On use l'ennemi rang après rang.
+* **👹 Des Petits Titans :** des mini-boss ennemis de cinq couleurs, chacun avec son attaque : carapace, fendoir, ruée, hymne ou météore.
 * **📐 Des ennemis qui changent de forme :** phalange, coin, croissant, pinces, trois blocs, échelon. Adaptez votre formation avant l'assaut.
 * **🧭 Des cartes à lire :** chaque vague a son terrain, des cratères jusqu'à un vrai labyrinthe. Les armées contournent les obstacles, et les pointillés rouges annoncent la route probable de l'ennemi.
 * **🗺️ Un terrain qui grandit :** l'arène et l'armée s'agrandissent au fil des vagues, et la caméra dézoome pour en montrer l'ampleur.
 * **🥁 Des tambours de guerre :** une musique générée en direct, lente en préparation et martiale au combat.
 * **💾 Une partie sauvegardée :** reprenez où vous en étiez, et gardez votre record.
+
+---
+
+## 👹 Les Petits Titans
+
+À partir de la vague 4, des mini-boss rejoignent l'armée ennemie : des petits Titans. Contrairement au vôtre, ils marchent, donc les murs les arrêtent, et ils vont moins vite que lui. Chaque couleur a son caractère et son attaque :
+
+| Couleur | Petit Titan | Dès la vague | Ce qu'il fait |
+|---|---|---|---|
+| 🟢 Vert | Colosse de Jade | 4 | Très résistant. Se couvre d'une carapace qui bloque 75 % des dégâts et enracine les ennemis proches |
+| 🔴 Rouge | Bourreau Écarlate | 6 | Dégâts. Fend en arc les 6 ennemis les plus proches, et enrage sous la moitié de ses PV |
+| 🔵 Bleu | Éclair d'Azur | 8 | Vitesse. Fonce sur sa cible et renverse les premiers ennemis sur son passage |
+| 🟡 Or | Héraut Doré | 10 | Soutien. Les ennemis autour de lui frappent 30 % plus fort, et il soigne les 12 plus proches |
+| 🟣 Violet | Sorcier d'Améthyste | 12 | Magie. Fait tomber une météore, annoncée par un cercle, qui écrase les 8 ennemis les plus proches de l'impact |
 
 ---
 
@@ -64,20 +79,27 @@ Les cartes reviennent ensuite dans le même ordre, à partir de la vague 11.
 
 Le **Général** joue comme en solo : il peint son armée, lance les vagues et trace ses sorts. Le **Titan** ne dirige qu'une seule unité, immense. Il enjambe murs et trous, frappe automatiquement ce qui l'entoure, tire avec ses canons, et dépense ses **Âmes** pour évoluer. En duo, les vagues ennemies grossissent jusqu'à atteindre 3,2 fois leur taille en solo. Les ennemis en plus ne rapportent pas d'or au Général : ils nourrissent le Titan.
 
-Son arbre est une constellation à six branches. Chaque compétence le fait grandir et ajoute une pièce visible à son corps : des plaques, des poings, des tourelles sur les épaules, puis des mitrailleuses, et un canon de lumière à l'avant. Chaque branche se termine par une compétence ultime.
+Son arbre suit **deux axes**. Chaque compétence le fait grandir et ajoute une pièce visible à son corps : des plaques, des poings, des tourelles sur les épaules, puis des mitrailleuses, et un canon de lumière à l'avant. Chaque branche se termine par une compétence ultime. Dans le menu, on se déplace en glissant, et on zoome à la molette, à deux doigts ou avec les boutons + et −.
+
+**⚔️ L'attaque, vers la droite, se débloque une branche après l'autre.** On ne peut pas mettre de point dans les Canons tant que les Poings ne sont pas complets, ni dans le Laser tant que les Canons ne le sont pas. Chaque branche coûte plus que la précédente : 220 âmes pour les Poings, 377 pour les Canons, 644 pour le Laser.
 
 | Branche | Ce qu'elle apporte | Ultime |
 |---|---|---|
-| ❤️ Le Cœur | PV, régénération, carapace, vol de vie, résistance aux tirs, Bastion Vivant | Seconde Vie |
-| 👊 Les Poings | Dégâts, coups en arc, frénésie, Brise-Rangs, **J** Onde de Choc, Séisme | Coup Fatal |
-| 🔫 Les Canons | Des tourelles qui tirent seules, chaque balle s'arrête dans sa cible : cadence, canons en plus, balles perforantes, lunette, munitions lourdes | Mitrailleuse, avec des rafales régulières |
-| 🦶 Les Jambes | Vitesse, piétinement, pas sismique, **L** Charge, Ruée, Inarrêtable | Colosse |
-| 👑 La Couronne | Aura qui renforce, soigne et protège l'armée, Terreur, Tribut, **I** Cri de Ralliement | Majesté |
-| 👁️ Le Regard | **Branche ultime**, ouverte quand deux autres branches sont complètes : **K** Regard Ardent, Œil Perçant, Prisme, Réacteur, Œil du Chasseur, Regard Persistant | Regard Pétrifiant |
+| 👊 1. Les Poings | Dégâts, coups en arc, frénésie, Brise-Rangs, **J** Onde de Choc, Séisme | Coup Fatal |
+| 🔫 2. Les Canons | Des tourelles qui tirent seules, chaque balle s'arrête dans sa cible : cadence, canons en plus, balles perforantes, lunette, munitions lourdes | Mitrailleuse, avec des rafales régulières |
+| 👁️ 3. Le Laser | **K** Regard Ardent, Œil Perçant, Prisme, Réacteur, Œil du Chasseur, Regard Persistant | Jugement Solaire : le rayon ne s'épuise plus, brûle deux fois plus fort et pétrifie |
 
-Le Regard Ardent est un canon de lumière qui se charge pendant la bataille. Il est vide au début de chaque vague et met 45 secondes à se charger, moins avec le Réacteur. Pendant la charge, une jauge se remplit autour de l'objectif et des étincelles y convergent. Une fois prêt, l'objectif brille et le bouton K s'illumine.
+**🛡️ La défense, vers la gauche :** le Cœur (la vie) et les Jambes (la vitesse) se développent librement. Quand les deux sont complets, un chemin s'ouvre vers la Couronne, qui renforce toute l'armée.
 
-Le Titan grandit au rythme des ennemis : ses PV et ses dégâts suivent la vague, pour qu'il puisse rester au corps à corps. Son rayon ne traverse plus tout : chaque faisceau brûle les 3 premiers ennemis sur sa ligne, puis s'arrête.
+| Branche | Ce qu'elle apporte | Ultime |
+|---|---|---|
+| ❤️ Le Cœur · vie | PV, régénération, carapace, vol de vie, résistance aux tirs, Bastion Vivant | Seconde Vie |
+| 🦶 Les Jambes · vitesse | Vitesse, piétinement, pas sismique, **L** Charge, Ruée, Inarrêtable | Colosse |
+| 👑 La Couronne · l'armée | Aura qui renforce, soigne et protège l'armée, Terreur, Tribut, **I** Cri de Ralliement | Majesté |
+
+Le Laser est un canon de lumière qui se charge pendant la bataille. Il est vide au début de chaque vague et met 45 secondes à se charger, 23 secondes avec le Réacteur au maximum. Pendant la charge, une jauge se remplit autour de l'objectif et des étincelles y convergent. Une fois prêt, l'objectif brille et le bouton K s'illumine. Comme il est lent, ses dernières améliorations sont redoutables.
+
+Le Titan grandit au rythme des ennemis : ses PV et ses dégâts suivent la vague, pour qu'il puisse rester au corps à corps. Son rayon ne traverse pas tout : chaque faisceau brûle les premiers ennemis sur sa ligne, puis s'arrête, jusqu'au Jugement Solaire.
 
 **Chacun son rôle :** en ligne, seul le joueur Titan commande le Titan et dépense ses âmes. Le Général voit l'arbre du Titan, sans pouvoir y toucher. Sur le même écran, les capacités du Titan passent uniquement par le clavier (J K L I), pour que la souris du Général ne les déclenche pas par erreur.
 
