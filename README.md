@@ -12,9 +12,34 @@ Un jeu de stratégie où l'on dessine ses troupes au pinceau, où l'on trace ses
 * **🔥 Les sorts peints :** en combat, tracez au pinceau un trait de feu, de l'encre gelée ou une aquarelle de soin. Ils consomment de l'encre, regagnée avec le temps et à chaque ennemi vaincu.
 * **⏸ La pause tactique :** figez la bataille et peignez vos sorts à tête reposée.
 * **📐 Des ennemis qui changent de forme :** phalange, coin, croissant, pinces, trois blocs, échelon. Adaptez votre formation avant l'assaut.
+* **🧭 Des cartes à lire :** chaque vague a son terrain, des cratères jusqu'à un vrai labyrinthe. Les armées contournent les obstacles, et les pointillés rouges annoncent la route probable de l'ennemi.
 * **🗺️ Un terrain qui grandit :** l'arène et l'armée s'agrandissent au fil des vagues, et la caméra dézoome pour en montrer l'ampleur.
 * **🥁 Des tambours de guerre :** une musique générée en direct, lente en préparation et martiale au combat.
 * **💾 Une partie sauvegardée :** reprenez où vous en étiez, et gardez votre record.
+
+---
+
+## 🗺️ Le terrain
+
+| Obstacle | Unités | Flèches | Orbes des Mages |
+|---|---|---|---|
+| **Mur** | Bloquées | Bloquées | Passent au-dessus |
+| **Trou** | Bloquées | Passent | Passent |
+| **Marais** | Ralenties | Passent | Passent |
+
+| Vague | Carte | L'enjeu |
+|---|---|---|
+| 1 et 2 | La Plaine | Aucun obstacle |
+| 3 | Les Cratères | Les trous divisent les armées, mais pas les tirs |
+| 4 | Le Marais | Traverser ralentit, contourner rallonge |
+| 5 | Les Deux Cols | Un mur, deux passages |
+| 6 | La Forêt de Piliers | Les rangs se brisent et les tirs sont coupés |
+| 7 | La Faille | Deux ponts seulement |
+| 8 | Le Serpent | Un long couloir en lacets |
+| 9 | Le Bastion | Une forteresse ennemie à deux portes |
+| 10 | Le Dédale | Un vrai labyrinthe, différent à chaque passage |
+
+Les cartes reviennent ensuite dans le même ordre, à partir de la vague 11.
 
 ---
 

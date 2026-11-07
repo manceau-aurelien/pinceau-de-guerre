@@ -77,6 +77,18 @@
     }
 
     /* La couche de peinture : déplacée et zoomée par le GPU, sans coût de dessin à chaque image */
+    #terrainCanvas {
+      inset: auto;
+      left: 0;
+      top: 0;
+      width: auto;
+      height: auto;
+      z-index: 0;
+      pointer-events: none;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
     #paintCanvas {
       inset: auto;
       left: 0;
@@ -1355,6 +1367,7 @@
 </head>
 <body>
   <div id="canvas-container">
+    <canvas id="terrainCanvas"></canvas>
     <canvas id="paintCanvas"></canvas>
     <canvas id="gameCanvas"></canvas>
     <canvas id="overlayCanvas"></canvas>
@@ -1673,8 +1686,8 @@
     // Votre armée revient gratuitement à chaque vague : les vagues doivent grandir plus vite que votre or
     const ENEMY_BUDGET_RAMP = 0.22;
     const KILL_REWARD_RATE = 0.45;
-    const ENEMY_HP_GROWTH = 0.24;
-    const ENEMY_DMG_GROWTH = 0.17;
+    const ENEMY_HP_GROWTH = 0.17;
+    const ENEMY_DMG_GROWTH = 0.13;
 
     // Coûts et statistiques de base soigneusement équilibrés pour la synergie inter-armes
     const UNIT_SPECS = [
@@ -1946,6 +1959,571 @@
       arena.top = WORLD_CY - arena.h * 0.5;
       arena.bottom = WORLD_CY + arena.h * 0.5;
       refreshCameraFit();
+      if (terrain.map && terrain.builtKey && !terrain.builtKey.endsWith(`:${arena.scale}`)) {
+        rebuildTerrain();
+        settleTeamOnTerrain(0);
+        settleTeamOnTerrain(1);
+      }
+    }
+
+    // =========================================================================
+    // LE TERRAIN : murs, trous, marais, et les chemins que suivent les armées
+    //  - Mur    : bloque les unités et les flèches (les orbes des Mages passent au-dessus)
+    //  - Trou   : bloque les unités, mais tous les tirs passent
+    //  - Marais : ralentit les unités, qui préfèrent le contourner
+    // =========================================================================
+    const TERRAIN_FREE = 0;
+    const TERRAIN_WALL = 1;
+    const TERRAIN_HOLE = 2;
+    const TERRAIN_MUD = 3;
+    const NAV_BASE_CELL = 28;
+    const MUD_SPEED_FACTOR = 0.45;
+    const MUD_PATH_COST = 3;
+    const FLOW_REFRESH_SECONDS = 0.3;
+    const RETARGET_BLOCKED_PERIOD = 24;  // Une unité sans ligne de tir réévalue sa cible toutes les N mises à jour
+
+    const terrain = {
+      map: null, wave: 0, builtKey: '', active: false, blockers: false,
+      cols: 0, rows: 0, cell: NAV_BASE_CELL, left: 0, top: 0,
+      grid: new Uint8Array(0), enemyFrontX: ENEMY_FRONT_X
+    };
+    const flowFields = [
+      { dist: new Int32Array(0), dirX: new Float32Array(0), dirY: new Float32Array(0) },
+      { dist: new Int32Array(0), dirX: new Float32Array(0), dirY: new Float32Array(0) }
+    ];
+    const flowBuckets = [[], [], [], []];
+    let flowTimer = 0;
+    let navTick = 0;
+    let routeDirty = true;
+    let enemyRoute = [];
+
+    function createSeededRandom(seed) {
+      let s = (seed * 2654435761) >>> 0;
+      return () => {
+        s = (s + 0x6D2B79F5) >>> 0;
+        let t = s;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    // ---- Outils de construction : u et v vont de -1 à 1 sur la largeur et la hauteur de l'arène ----
+    function paintTerrainRect(u0, v0, u1, v1, type) {
+      const x0 = WORLD_CX + u0 * arena.w * 0.5;
+      const x1 = WORLD_CX + u1 * arena.w * 0.5;
+      const y0 = WORLD_CY + v0 * arena.h * 0.5;
+      const y1 = WORLD_CY + v1 * arena.h * 0.5;
+      const cx0 = Math.max(0, Math.floor((x0 - terrain.left) / terrain.cell));
+      const cy0 = Math.max(0, Math.floor((y0 - terrain.top) / terrain.cell));
+      const cx1 = Math.min(terrain.cols - 1, Math.max(cx0, Math.ceil((x1 - terrain.left) / terrain.cell) - 1));
+      const cy1 = Math.min(terrain.rows - 1, Math.max(cy0, Math.ceil((y1 - terrain.top) / terrain.cell) - 1));
+      for (let cy = cy0; cy <= cy1; cy++) {
+        for (let cx = cx0; cx <= cx1; cx++) {
+          terrain.grid[cy * terrain.cols + cx] = type;
+        }
+      }
+    }
+
+    function paintTerrainCircle(u, v, r, type) {
+      const cxWorld = WORLD_CX + u * arena.w * 0.5;
+      const cyWorld = WORLD_CY + v * arena.h * 0.5;
+      const radiusWorld = r * arena.h * 0.5;
+      for (let cy = 0; cy < terrain.rows; cy++) {
+        const wy = terrain.top + (cy + 0.5) * terrain.cell;
+        for (let cx = 0; cx < terrain.cols; cx++) {
+          const wx = terrain.left + (cx + 0.5) * terrain.cell;
+          if ((wx - cxWorld) ** 2 + (wy - cyWorld) ** 2 <= radiusWorld * radiusWorld) {
+            terrain.grid[cy * terrain.cols + cx] = type;
+          }
+        }
+      }
+    }
+
+    function buildMazeTerrain(u0, u1, rng) {
+      const CORRIDOR_CELLS = 3;
+      const step = CORRIDOR_CELLS + 1;
+      const originX = Math.floor((WORLD_CX + u0 * arena.w * 0.5 - terrain.left) / terrain.cell);
+      const nodesX = Math.max(3, Math.floor(((u1 - u0) * arena.w * 0.5 / terrain.cell) / step));
+      const nodesY = Math.max(3, Math.floor((terrain.rows - 1) / step));
+      const originY = Math.floor((terrain.rows - nodesY * step) / 2);
+      const setWall = (cx, cy, type) => {
+        if (cx >= 0 && cy >= 0 && cx < terrain.cols && cy < terrain.rows) terrain.grid[cy * terrain.cols + cx] = type;
+      };
+
+      // Quadrillage complet, puis on creuse un labyrinthe parfait
+      for (let ny = 0; ny <= nodesY; ny++) {
+        for (let cx = 0; cx <= nodesX * step; cx++) setWall(originX + cx, originY + ny * step, TERRAIN_WALL);
+      }
+      for (let nx = 0; nx <= nodesX; nx++) {
+        for (let cy = 0; cy <= nodesY * step; cy++) setWall(originX + nx * step, originY + cy, TERRAIN_WALL);
+      }
+      const carve = (nx, ny, dx, dy) => {
+        for (let k = 1; k <= CORRIDOR_CELLS; k++) {
+          if (dx !== 0) setWall(originX + (nx + (dx > 0 ? 1 : 0)) * step, originY + ny * step + k, TERRAIN_FREE);
+          else setWall(originX + nx * step + k, originY + (ny + (dy > 0 ? 1 : 0)) * step, TERRAIN_FREE);
+        }
+      };
+      const visited = new Uint8Array(nodesX * nodesY);
+      const stack = [[Math.floor(rng() * nodesX), Math.floor(rng() * nodesY)]];
+      visited[stack[0][1] * nodesX + stack[0][0]] = 1;
+      const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      while (stack.length > 0) {
+        const [nx, ny] = stack[stack.length - 1];
+        const options = directions.filter(([dx, dy]) => {
+          const ax = nx + dx;
+          const ay = ny + dy;
+          return ax >= 0 && ay >= 0 && ax < nodesX && ay < nodesY && !visited[ay * nodesX + ax];
+        });
+        if (options.length === 0) {
+          stack.pop();
+          continue;
+        }
+        const [dx, dy] = options[Math.floor(rng() * options.length)];
+        carve(nx, ny, dx, dy);
+        visited[(ny + dy) * nodesX + nx + dx] = 1;
+        stack.push([nx + dx, ny + dy]);
+      }
+
+      // Quelques raccourcis pour offrir de vrais choix d'itinéraire
+      for (let ny = 0; ny < nodesY; ny++) {
+        for (let nx = 0; nx < nodesX - 1; nx++) {
+          if (rng() < 0.12) carve(nx, ny, 1, 0);
+        }
+      }
+
+      // Trois entrées de chaque côté
+      for (let i = 0; i < 3; i++) {
+        const leftRow = Math.floor(((i + rng()) / 3) * nodesY);
+        const rightRow = Math.floor(((i + rng()) / 3) * nodesY);
+        for (let k = 1; k <= CORRIDOR_CELLS; k++) {
+          setWall(originX, originY + leftRow * step + k, TERRAIN_FREE);
+          setWall(originX + nodesX * step, originY + rightRow * step + k, TERRAIN_FREE);
+        }
+      }
+    }
+
+    // ---- Les cartes ----
+    const MAPS = {
+      plaine: { name: 'La Plaine', hint: 'Aucun obstacle : la force brute décide.', build() {} },
+      crateres: {
+        name: 'Les Cratères',
+        hint: 'Les trous divisent les armées, mais les tirs les traversent.',
+        build() {
+          [[-0.04, -0.48, 0.22], [-0.04, 0.5, 0.2], [0.13, 0.02, 0.24], [0.52, 0.62, 0.22],
+            [0.56, -0.58, 0.2], [-0.55, 0.55, 0.18], [-0.6, -0.5, 0.2], [0.38, -0.02, 0.12]]
+            .forEach(([u, v, r]) => paintTerrainCircle(u, v, r, TERRAIN_HOLE));
+        }
+      },
+      marais: {
+        name: 'Le Marais',
+        hint: 'Traverser ralentit, contourner rallonge : à vous de choisir.',
+        build() {
+          paintTerrainRect(-0.24, -1, 0.24, 1, TERRAIN_MUD);
+          paintTerrainRect(-0.24, -0.86, 0.24, -0.62, TERRAIN_FREE);
+          paintTerrainRect(-0.24, 0.62, 0.24, 0.86, TERRAIN_FREE);
+          [[0.55, -0.45, 0.28], [0.6, 0.5, 0.26], [-0.55, 0, 0.3]]
+            .forEach(([u, v, r]) => paintTerrainCircle(u, v, r, TERRAIN_MUD));
+        }
+      },
+      cols: {
+        name: 'Les Deux Cols',
+        hint: 'Un mur, deux passages : divisez vos forces ou frappez d\'un seul côté.',
+        build() {
+          paintTerrainRect(0.02, -1, 0.05, -0.8, TERRAIN_WALL);
+          paintTerrainRect(0.02, -0.46, 0.05, 0.46, TERRAIN_WALL);
+          paintTerrainRect(0.02, 0.8, 0.05, 1, TERRAIN_WALL);
+        }
+      },
+      piliers: {
+        name: 'La Forêt de Piliers',
+        hint: 'Les piliers brisent les rangs et coupent les lignes de tir.',
+        build(rng) {
+          let column = 0;
+          for (let u = -0.78; u <= 0.8; u += 0.17) {
+            const shift = column % 2 === 0 ? 0 : 0.26;
+            for (let v = -0.9 + shift; v <= 0.9; v += 0.52) {
+              const jitter = (rng() - 0.5) * 0.08;
+              paintTerrainRect(u, v + jitter, u + 0.028, v + jitter + 0.14, TERRAIN_WALL);
+            }
+            column++;
+          }
+        }
+      },
+      faille: {
+        name: 'La Faille',
+        hint: 'Deux ponts seulement : un duel d\'archers de part et d\'autre.',
+        build() {
+          const inBridge = (v) => (v > -0.46 && v < -0.2) || (v > 0.34 && v < 0.6);
+          for (let v = -1; v < 1; v += 0.03) {
+            if (inBridge(v) || inBridge(v + 0.03)) continue;
+            const center = 0.09 + 0.08 * Math.sin(v * 3.2);
+            paintTerrainRect(center - 0.035, v, center + 0.035, v + 0.04, TERRAIN_HOLE);
+          }
+        }
+      },
+      labyrinthe: {
+        name: 'Le Serpent',
+        hint: 'Un long couloir en lacets : tenez les virages, les orbes passent au-dessus.',
+        enemyFrontU: 0.32,
+        build() {
+          const barriers = [-0.07, 0.08, 0.23];
+          barriers.forEach((u, i) => {
+            if (i % 2 === 0) paintTerrainRect(u, -0.58, u + 0.02, 1, TERRAIN_WALL);
+            else paintTerrainRect(u, -1, u + 0.02, 0.58, TERRAIN_WALL);
+          });
+          paintTerrainRect(0.105, -0.3, 0.2, 0.3, TERRAIN_MUD);
+        }
+      },
+      bastion: {
+        name: 'Le Bastion',
+        hint: 'L\'ennemi tient une forteresse à deux portes : quelle porte forcer ?',
+        enemyFrontU: 0.36,
+        build() {
+          paintTerrainRect(0.22, -0.84, 0.92, -0.8, TERRAIN_WALL);
+          paintTerrainRect(0.22, 0.8, 0.92, 0.84, TERRAIN_WALL);
+          paintTerrainRect(0.89, -0.84, 0.92, 0.84, TERRAIN_WALL);
+          paintTerrainRect(0.22, -0.84, 0.25, -0.38, TERRAIN_WALL);
+          paintTerrainRect(0.22, -0.12, 0.25, 0.12, TERRAIN_WALL);
+          paintTerrainRect(0.22, 0.38, 0.25, 0.84, TERRAIN_WALL);
+          paintTerrainRect(0.09, -0.5, 0.22, 0.5, TERRAIN_MUD);
+        }
+      },
+      dedale: {
+        name: 'Le Dédale',
+        hint: 'Un vrai labyrinthe : suivez l\'itinéraire en pointillés et tendez une embuscade.',
+        enemyFrontU: 0.6,
+        build(rng) { buildMazeTerrain(-0.12, 0.55, rng); }
+      }
+    };
+    const MAP_ROTATION = ['crateres', 'marais', 'cols', 'piliers', 'faille', 'labyrinthe', 'bastion', 'dedale'];
+
+    function pickMapForWave(waveNum) {
+      if (waveNum < 3) return MAPS.plaine;
+      return MAPS[MAP_ROTATION[(waveNum - 3) % MAP_ROTATION.length]];
+    }
+
+    // ---- Lecture du terrain ----
+    function terrainCellAt(x, y) {
+      const cx = Math.floor((x - terrain.left) / terrain.cell);
+      const cy = Math.floor((y - terrain.top) / terrain.cell);
+      if (cx < 0 || cy < 0 || cx >= terrain.cols || cy >= terrain.rows) return -1;
+      return cy * terrain.cols + cx;
+    }
+
+    function isTerrainBlockedAt(x, y) {
+      if (!terrain.blockers) return false;
+      const cell = terrainCellAt(x, y);
+      if (cell < 0) return false;
+      const type = terrain.grid[cell];
+      return type === TERRAIN_WALL || type === TERRAIN_HOLE;
+    }
+
+    function isMudAt(x, y) {
+      const cell = terrainCellAt(x, y);
+      return cell >= 0 && terrain.grid[cell] === TERRAIN_MUD;
+    }
+
+    // Les murs bloquent toujours ; les trous ne bloquent que la marche
+    function segmentClear(x0, y0, x1, y1, holesBlock) {
+      if (!terrain.blockers) return true;
+      const dist = Math.hypot(x1 - x0, y1 - y0);
+      const steps = Math.ceil(dist / (terrain.cell * 0.6));
+      for (let s = 1; s < steps; s++) {
+        const t = s / steps;
+        const cell = terrainCellAt(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
+        if (cell < 0) continue;
+        const type = terrain.grid[cell];
+        if (type === TERRAIN_WALL || (holesBlock && type === TERRAIN_HOLE)) return false;
+      }
+      return true;
+    }
+
+    // Déplacement axe par axe : une unité glisse le long d'un obstacle au lieu de s'y coller
+    function moveUnit(i, dx, dy) {
+      if (!terrain.blockers) {
+        pos_x[i] += dx;
+        pos_y[i] += dy;
+        return;
+      }
+      const r = radius[i] * 0.7;
+      const x = pos_x[i];
+      const y = pos_y[i];
+      if (isTerrainBlockedAt(x, y)) {
+        pos_x[i] = x + dx;
+        pos_y[i] = y + dy;
+        return;
+      }
+      const nextX = x + dx;
+      if (!isTerrainBlockedAt(nextX + (dx >= 0 ? r : -r), y)) pos_x[i] = nextX;
+      const nextY = y + dy;
+      if (!isTerrainBlockedAt(pos_x[i], nextY + (dy >= 0 ? r : -r))) pos_y[i] = nextY;
+    }
+
+    // ---- Construction ----
+    function removeUnreachableTerrain() {
+      const { grid, cols, rows } = terrain;
+      const startCell = terrainCellAt(DEPLOY_LINE_X - 60, WORLD_CY);
+      let start = startCell;
+      if (start < 0 || grid[start] === TERRAIN_WALL || grid[start] === TERRAIN_HOLE) {
+        start = -1;
+        for (let i = 0; i < grid.length; i++) {
+          if (grid[i] === TERRAIN_FREE || grid[i] === TERRAIN_MUD) { start = i; break; }
+        }
+      }
+      if (start < 0) return;
+      const seen = new Uint8Array(grid.length);
+      const queue = [start];
+      seen[start] = 1;
+      while (queue.length > 0) {
+        const c = queue.pop();
+        const cx = c % cols;
+        const neighbours = [cx > 0 ? c - 1 : -1, cx < cols - 1 ? c + 1 : -1, c - cols, c + cols];
+        for (const n of neighbours) {
+          if (n < 0 || n >= grid.length || seen[n]) continue;
+          if (grid[n] === TERRAIN_WALL || grid[n] === TERRAIN_HOLE) continue;
+          seen[n] = 1;
+          queue.push(n);
+        }
+      }
+      for (let i = 0; i < grid.length; i++) {
+        if (!seen[i] && (grid[i] === TERRAIN_FREE || grid[i] === TERRAIN_MUD)) grid[i] = TERRAIN_WALL;
+      }
+    }
+
+    function rebuildTerrain() {
+      const map = terrain.map;
+      if (!map) return;
+      const key = `${terrain.wave}:${map.name}:${arena.scale}`;
+      if (key === terrain.builtKey) return;
+      terrain.builtKey = key;
+
+      terrain.cell = NAV_BASE_CELL * Math.sqrt(arena.scale);
+      terrain.left = arena.left;
+      terrain.top = arena.top;
+      terrain.cols = Math.ceil(arena.w / terrain.cell);
+      terrain.rows = Math.ceil(arena.h / terrain.cell);
+      const cellCount = terrain.cols * terrain.rows;
+      terrain.grid = new Uint8Array(cellCount);
+
+      map.build(createSeededRandom(terrain.wave + 1));
+      removeUnreachableTerrain();
+
+      terrain.blockers = false;
+      terrain.active = false;
+      for (let i = 0; i < cellCount; i++) {
+        const type = terrain.grid[i];
+        if (type !== TERRAIN_FREE) terrain.active = true;
+        if (type === TERRAIN_WALL || type === TERRAIN_HOLE) { terrain.blockers = true; break; }
+      }
+
+      const frontU = map.enemyFrontU || 0;
+      terrain.enemyFrontX = Math.max(ENEMY_FRONT_X, WORLD_CX + frontU * arena.w * 0.5);
+
+      for (const field of flowFields) {
+        field.dist = new Int32Array(cellCount);
+        field.dirX = new Float32Array(cellCount);
+        field.dirY = new Float32Array(cellCount);
+      }
+      flowTimer = 0;
+      routeDirty = true;
+      drawTerrainLayer();
+    }
+
+    function loadMapForWave(waveNum) {
+      terrain.map = pickMapForWave(waveNum);
+      terrain.wave = waveNum;
+      rebuildTerrain();
+    }
+
+    // Replace les unités tombées dans un obstacle ou entassées sur la case libre la plus proche
+    function settleTeamOnTerrain(teamIdx) {
+      if (!terrain.blockers) return;
+      const { grid, cols, rows, cell } = terrain;
+      const occupancy = new Uint16Array(grid.length);
+      const isFree = (c) => grid[c] === TERRAIN_FREE || grid[c] === TERRAIN_MUD;
+      const capacityFor = (i) => Math.max(1, Math.floor((cell * cell) / ((radius[i] * 2.1) ** 2)));
+      const allowedX = (x) => (teamIdx === 0 ? x <= DEPLOY_LINE_X - 10 : x >= DEPLOY_LINE_X + 20);
+
+      const misplaced = [];
+      for (let i = 0; i < MAX_ENTITIES; i++) {
+        if (active[i] === 0 || team[i] !== teamIdx) continue;
+        const c = terrainCellAt(pos_x[i], pos_y[i]);
+        if (c >= 0 && isFree(c)) {
+          occupancy[c]++;
+        } else {
+          misplaced.push(i);
+        }
+      }
+
+      const MAX_SEARCH_RADIUS = Math.max(cols, rows);
+      for (const i of misplaced) {
+        const cx0 = Math.floor((pos_x[i] - terrain.left) / cell);
+        const cy0 = Math.floor((pos_y[i] - terrain.top) / cell);
+        const capacity = capacityFor(i);
+        let placed = false;
+        for (let r = 1; r <= MAX_SEARCH_RADIUS && !placed; r++) {
+          for (let dy = -r; dy <= r && !placed; dy++) {
+            for (let dx = -r; dx <= r; dx++) {
+              if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+              const cx = cx0 + dx;
+              const cy = cy0 + dy;
+              if (cx < 0 || cy < 0 || cx >= cols || cy >= rows) continue;
+              const c = cy * cols + cx;
+              if (!isFree(c) || occupancy[c] >= capacity) continue;
+              const x = terrain.left + (cx + 0.2 + Math.random() * 0.6) * cell;
+              const y = terrain.top + (cy + 0.2 + Math.random() * 0.6) * cell;
+              if (!allowedX(x)) continue;
+              pos_x[i] = x;
+              pos_y[i] = y;
+              home_y[i] = y;
+              occupancy[c]++;
+              placed = true;
+              break;
+            }
+          }
+        }
+        // Plus aucune place dans la zone : l'unité du joueur est remboursée
+        if (!placed && teamIdx === 0) destroyEntity(i, true);
+      }
+    }
+
+    // ---- Champ de navigation : pour chaque case, la direction du plus proche adversaire ----
+    function computeFlowField(teamIdx) {
+      const { grid, cols, rows } = terrain;
+      const field = flowFields[teamIdx];
+      const dist = field.dist;
+      const INF = 0x3fffffff;
+      dist.fill(INF);
+      for (const bucket of flowBuckets) bucket.length = 0;
+
+      let pending = 0;
+      const foeTeam = 1 - teamIdx;
+      for (let i = 0; i < MAX_ENTITIES; i++) {
+        if (active[i] === 0 || team[i] !== foeTeam) continue;
+        const c = terrainCellAt(pos_x[i], pos_y[i]);
+        if (c < 0 || dist[c] === 0) continue;
+        dist[c] = 0;
+        flowBuckets[0].push(c);
+        pending++;
+      }
+
+      // Parcours par coût croissant : traverser un marais coûte plus cher que la terre ferme
+      let currentCost = 0;
+      while (pending > 0) {
+        const bucket = flowBuckets[currentCost % flowBuckets.length];
+        while (bucket.length > 0) {
+          const c = bucket.pop();
+          pending--;
+          if (dist[c] !== currentCost) continue;
+          const cx = c % cols;
+          for (let n = 0; n < 4; n++) {
+            let next;
+            if (n === 0) { if (cx === 0) continue; next = c - 1; }
+            else if (n === 1) { if (cx === cols - 1) continue; next = c + 1; }
+            else if (n === 2) { next = c - cols; if (next < 0) continue; }
+            else { next = c + cols; if (next >= grid.length) continue; }
+            const type = grid[next];
+            if (type === TERRAIN_WALL || type === TERRAIN_HOLE) continue;
+            const cost = currentCost + (type === TERRAIN_MUD ? MUD_PATH_COST : 1);
+            if (cost < dist[next]) {
+              dist[next] = cost;
+              flowBuckets[cost % flowBuckets.length].push(next);
+              pending++;
+            }
+          }
+        }
+        currentCost++;
+      }
+
+      for (let cy = 0; cy < rows; cy++) {
+        for (let cx = 0; cx < cols; cx++) {
+          const c = cy * cols + cx;
+          field.dirX[c] = 0;
+          field.dirY[c] = 0;
+          if (dist[c] === INF || dist[c] === 0) continue;
+          let best = dist[c];
+          let bestX = 0;
+          let bestY = 0;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue;
+              const nx = cx + dx;
+              const ny = cy + dy;
+              if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+              const n = ny * cols + nx;
+              if (dist[n] >= best) continue;
+              // Pas de coupe en diagonale à travers l'angle d'un obstacle
+              if (dx !== 0 && dy !== 0 && (dist[cy * cols + nx] === INF || dist[ny * cols + cx] === INF)) continue;
+              best = dist[n];
+              bestX = dx;
+              bestY = dy;
+            }
+          }
+          if (bestX !== 0 || bestY !== 0) {
+            const len = Math.hypot(bestX, bestY);
+            field.dirX[c] = bestX / len;
+            field.dirY[c] = bestY / len;
+          }
+        }
+      }
+    }
+
+    function updateFlowFields(dt) {
+      if (!terrain.active) return;
+      flowTimer -= dt;
+      if (flowTimer > 0) return;
+      flowTimer = FLOW_REFRESH_SECONDS;
+      computeFlowField(0);
+      computeFlowField(1);
+    }
+
+    // L'itinéraire probable de l'armée ennemie, affiché en préparation
+    function computeEnemyRoute() {
+      routeDirty = false;
+      enemyRoute = [];
+      if (!terrain.blockers || playerCount === 0 || enemyCount === 0) return;
+      computeFlowField(1);
+      let sumX = 0;
+      let sumY = 0;
+      let n = 0;
+      for (let i = 0; i < MAX_ENTITIES; i++) {
+        if (active[i] === 1 && team[i] === 1) {
+          sumX += pos_x[i];
+          sumY += pos_y[i];
+          n++;
+        }
+      }
+      if (n === 0) return;
+      let x = sumX / n;
+      let y = sumY / n;
+      // Départ depuis le front de l'armée : l'ennemi le plus proche de ce centre
+      let bestDist = Infinity;
+      for (let i = 0; i < MAX_ENTITIES; i++) {
+        if (active[i] === 1 && team[i] === 1) {
+          const d = (pos_x[i] - x) ** 2 + (pos_y[i] - y) ** 2;
+          if (d < bestDist) {
+            bestDist = d;
+            sumX = pos_x[i];
+            sumY = pos_y[i];
+          }
+        }
+      }
+      x = sumX;
+      y = sumY;
+      const field = flowFields[1];
+      const stepSize = terrain.cell * 0.7;
+      enemyRoute.push(x, y);
+      for (let k = 0; k < 1500; k++) {
+        const c = terrainCellAt(x, y);
+        if (c < 0 || field.dist[c] === 0) break;
+        const dx = field.dirX[c];
+        const dy = field.dirY[c];
+        if (dx === 0 && dy === 0) break;
+        x += dx * stepSize;
+        y += dy * stepSize;
+        if (k % 2 === 0) enemyRoute.push(x, y);
+      }
     }
 
     function clearAndRebuildSpatialGrid() {
@@ -2359,8 +2937,8 @@
         // Courbe d'équilibrage lisse selon la vague et la difficulté choisie
         const diff = DIFFICULTY_PRESETS[state.difficulty];
         const w = Math.max(1, state.wave);
-        const enemyWaveScaleHp = (0.82 + Math.pow(w - 1, 1.3) * ENEMY_HP_GROWTH) * diff.hpMult;
-        const enemyWaveScaleDmg = (0.84 + Math.pow(w - 1, 1.25) * ENEMY_DMG_GROWTH) * diff.dmgMult;
+        const enemyWaveScaleHp = (0.82 + Math.pow(w - 1, 1.5) * ENEMY_HP_GROWTH) * diff.hpMult;
+        const enemyWaveScaleDmg = (0.84 + Math.pow(w - 1, 1.4) * ENEMY_DMG_GROWTH) * diff.dmgMult;
 
         hp[idx] = spec.hp * enemyWaveScaleHp;
         max_hp[idx] = hp[idx];
@@ -2798,9 +3376,10 @@
         counts[TYPE_ARCHER] * 20 * 18 +
         counts[TYPE_MAGE] * 24 * 24;
       updateArena();
+      loadMapForWave(waveNum);
 
       // Déploiement géométrique ordonné en phalange ennemie à droite
-      const startX = ENEMY_FRONT_X;
+      const startX = terrain.enemyFrontX;
       const centerY = WORLD_CY;
       const usableHeight = arena.h * 0.6;
 
@@ -2857,6 +3436,9 @@
 
       const formation = pickEnemyFormation(waveNum);
       applyEnemyFormation(formation, centerY, usableHeight);
+      settleTeamOnTerrain(1);
+      settleTeamOnTerrain(0);
+      routeDirty = true;
 
       // Générer le résumé textuel de la vague ennemie
       const parts = [];
@@ -2969,8 +3551,7 @@
         const pushLen = Math.hypot(pushX, pushY);
         if (pushLen > 0.0001) {
           const clampedLen = Math.min(pushLen * 12.0 * dt, maxPushDist);
-          pos_x[i] += (pushX / pushLen) * clampedLen;
-          pos_y[i] += (pushY / pushLen) * clampedLen;
+          moveUnit(i, (pushX / pushLen) * clampedLen, (pushY / pushLen) * clampedLen);
         }
       }
     }
@@ -2981,6 +3562,8 @@
     function targetingAndCombatSystem(dt) {
       let minEnemyX = WORLD_W;
       let maxPlayerX = 0;
+      navTick++;
+      updateFlowFields(dt);
       teamListCounts[0] = 0;
       teamListCounts[1] = 0;
       for (let i = 0; i < MAX_ENTITIES; i++) {
@@ -3010,6 +3593,7 @@
 
         const slowFactor = slow_until[i] > simClock ? ICE_SLOW_FACTOR : 1.0;
         if (cooldown[i] > 0) cooldown[i] -= dt * slowFactor;
+        const moveFactor = slowFactor * (terrain.active && isMudAt(px, py) ? MUD_SPEED_FACTOR : 1.0);
 
         let targetIdx = target_id[i];
         let targetValid = (targetIdx >= 0 && targetIdx < MAX_ENTITIES && active[targetIdx] === 1 && team[targetIdx] !== myTeam);
@@ -3100,7 +3684,37 @@
             desiredVy = 0;
           }
 
-          if (dist <= myRange + radius[targetIdx] && cooldown[i] <= 0) {
+          // Sur une carte à obstacles : on suit le champ de navigation tant qu'on ne voit pas sa cible
+          let canHit = true;
+          if (terrain.active) {
+            const marching = dist > engageThreshold;
+            const isRanged = myRange > 60;
+            const inRange = dist <= myRange + radius[targetIdx];
+            const clearWalk = !marching && segmentClear(px, py, tx, ty, true);
+            const clearShot = isRanged && inRange && (uType === TYPE_MAGE || segmentClear(px, py, tx, ty, false));
+            canHit = isRanged ? clearShot : clearWalk;
+
+            if (!clearWalk) {
+              if (clearShot) {
+                desiredVx = 0;
+                desiredVy = 0;
+              } else {
+                const field = flowFields[myTeam];
+                const cell = terrainCellAt(px, py);
+                const stepX = cell >= 0 ? field.dirX[cell] : 0;
+                const stepY = cell >= 0 ? field.dirY[cell] : 0;
+                if (stepX !== 0 || stepY !== 0) {
+                  const walkSpd = marching ? ARMY_MARCH_SPEED * (myTeam === 0 ? state.mods.speedMult : 1.0) : mySpd;
+                  desiredVx = stepX * walkSpd;
+                  desiredVy = stepY * walkSpd;
+                }
+              }
+              // La cible n'est peut-être plus la bonne une fois l'obstacle contourné
+              if (!canHit && (i + navTick) % RETARGET_BLOCKED_PERIOD === 0) target_id[i] = -1;
+            }
+          }
+
+          if (canHit && dist <= myRange + radius[targetIdx] && cooldown[i] <= 0) {
             cooldown[i] = max_cooldown[i];
 
             if (uType === TYPE_SWARMER || uType === TYPE_TANK || uType === TYPE_ASSASSIN || uType === TYPE_BOSS) {
@@ -3124,8 +3738,7 @@
         vel_x[i] += (desiredVx - vel_x[i]) * blend;
         vel_y[i] += (desiredVy - vel_y[i]) * blend;
 
-        pos_x[i] += vel_x[i] * dt * slowFactor;
-        pos_y[i] += vel_y[i] * dt * slowFactor;
+        moveUnit(i, vel_x[i] * dt * moveFactor, vel_y[i] * dt * moveFactor);
 
         if (pos_x[i] < arena.left) pos_x[i] = arena.left;
         if (pos_x[i] > arena.right) pos_x[i] = arena.right;
@@ -3146,6 +3759,15 @@
           proj_active[i] = 0;
           activeProjCount--;
           continue;
+        }
+
+        if (terrain.blockers && proj_type[i] === 0) {
+          const terrainCell = terrainCellAt(proj_x[i], proj_y[i]);
+          if (terrainCell >= 0 && terrain.grid[terrainCell] === TERRAIN_WALL) {
+            proj_active[i] = 0;
+            activeProjCount--;
+            continue;
+          }
         }
 
         const cellX = Math.floor(proj_x[i] / SPATIAL_CELL_SIZE);
@@ -3319,6 +3941,101 @@
       );
       paintBounds.minX = paintBounds.minY = Infinity;
       paintBounds.maxX = paintBounds.maxY = -Infinity;
+    }
+
+    const terrainCanvas = document.getElementById('terrainCanvas');
+    const terrainCtx = terrainCanvas.getContext('2d');
+    const terrainLayer = { scale: 1, left: 0, top: 0, lastTransform: '' };
+
+    function updateTerrainLayerTransform() {
+      const scale = camera.zoom / terrainLayer.scale;
+      const transform = `translate(${worldToScreenX(terrainLayer.left).toFixed(2)}px, ${worldToScreenY(terrainLayer.top).toFixed(2)}px) scale(${scale.toFixed(4)})`;
+      if (transform !== terrainLayer.lastTransform) {
+        terrainLayer.lastTransform = transform;
+        terrainCanvas.style.transform = transform;
+      }
+    }
+
+    function drawTerrainLayer() {
+      terrainLayer.scale = Math.min(1, 2000 / arena.w);
+      terrainLayer.left = arena.left;
+      terrainLayer.top = arena.top;
+      terrainLayer.lastTransform = '';
+      terrainCanvas.width = Math.round(arena.w * terrainLayer.scale);
+      terrainCanvas.height = Math.round(arena.h * terrainLayer.scale);
+      const ctx = terrainCtx;
+      ctx.setTransform(terrainLayer.scale, 0, 0, terrainLayer.scale, -terrainLayer.left * terrainLayer.scale, -terrainLayer.top * terrainLayer.scale);
+      if (!terrain.active) return;
+
+      const { grid, cols, rows, cell } = terrain;
+      const cellX = (cx) => terrain.left + cx * cell;
+      const cellY = (cy) => terrain.top + cy * cell;
+      const rng = createSeededRandom(terrain.wave + 7);
+
+      // Les trous et le marais sont dessinés en disques qui se chevauchent : leurs bords restent organiques
+      const drawBlobs = (type, radiusRatio, color) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        for (let cy = 0; cy < rows; cy++) {
+          for (let cx = 0; cx < cols; cx++) {
+            if (grid[cy * cols + cx] !== type) continue;
+            const x = cellX(cx) + cell * 0.5;
+            const y = cellY(cy) + cell * 0.5;
+            ctx.moveTo(x + cell * radiusRatio, y);
+            ctx.arc(x, y, cell * radiusRatio, 0, Math.PI * 2);
+          }
+        }
+        ctx.fill();
+      };
+
+      // Marais : encre visqueuse et mouchetée
+      drawBlobs(TERRAIN_MUD, 0.82, 'rgba(126, 87, 194, 0.26)');
+      drawBlobs(TERRAIN_MUD, 0.62, 'rgba(94, 62, 160, 0.3)');
+      ctx.fillStyle = 'rgba(196, 170, 255, 0.28)';
+      for (let cy = 0; cy < rows; cy++) {
+        for (let cx = 0; cx < cols; cx++) {
+          if (grid[cy * cols + cx] !== TERRAIN_MUD || rng() > 0.55) continue;
+          ctx.beginPath();
+          ctx.arc(cellX(cx) + rng() * cell, cellY(cy) + rng() * cell, cell * (0.03 + rng() * 0.07), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Trous : un liseré clair, puis le vide
+      drawBlobs(TERRAIN_HOLE, 0.9, 'rgba(148, 163, 184, 0.42)');
+      drawBlobs(TERRAIN_HOLE, 0.78, '#010204');
+
+      // Murs : blocs de pierre avec arêtes éclairées
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      for (let cy = 0; cy < rows - 1; cy++) {
+        for (let cx = 0; cx < cols; cx++) {
+          if (grid[cy * cols + cx] === TERRAIN_WALL && grid[(cy + 1) * cols + cx] !== TERRAIN_WALL) {
+            ctx.fillRect(cellX(cx), cellY(cy + 1), cell, cell * 0.28);
+          }
+        }
+      }
+      ctx.fillStyle = '#3a4763';
+      for (let cy = 0; cy < rows; cy++) {
+        for (let cx = 0; cx < cols; cx++) {
+          if (grid[cy * cols + cx] === TERRAIN_WALL) ctx.fillRect(cellX(cx), cellY(cy), cell + 0.5, cell + 0.5);
+        }
+      }
+      ctx.strokeStyle = 'rgba(203, 213, 225, 0.55)';
+      ctx.lineWidth = Math.max(1.5, cell * 0.07);
+      ctx.beginPath();
+      for (let cy = 0; cy < rows; cy++) {
+        for (let cx = 0; cx < cols; cx++) {
+          const c = cy * cols + cx;
+          if (grid[c] !== TERRAIN_WALL) continue;
+          const x = cellX(cx);
+          const y = cellY(cy);
+          if (cy > 0 && grid[c - cols] !== TERRAIN_WALL) { ctx.moveTo(x, y); ctx.lineTo(x + cell, y); }
+          if (cx > 0 && grid[c - 1] !== TERRAIN_WALL) { ctx.moveTo(x, y); ctx.lineTo(x, y + cell); }
+          if (cx < cols - 1 && grid[c + 1] !== TERRAIN_WALL) { ctx.moveTo(x + cell, y); ctx.lineTo(x + cell, y + cell); }
+          if (cy < rows - 1 && grid[c + cols] !== TERRAIN_WALL) { ctx.moveTo(x, y + cell); ctx.lineTo(x + cell, y + cell); }
+        }
+      }
+      ctx.stroke();
     }
 
     function updatePaintLayerTransform() {
@@ -3937,6 +4654,14 @@
       overlayCtx.fillStyle = 'rgba(244, 63, 94, 0.85)';
       const waveTitle = isSmallView ? '➡️' : `➡️ VAGUE ENNEMIE ${state.wave} (${DIFFICULTY_PRESETS[state.difficulty].label.toUpperCase()}) :`;
       overlayCtx.fillText(`${waveTitle} ${enemyWaveBreakdownText}`, lineX + 14, labelY);
+
+      if (terrain.map) {
+        overlayCtx.textAlign = 'center';
+        overlayCtx.fillStyle = 'rgba(226, 232, 240, 0.9)';
+        const mapLine = viewW < 700 ? `🗺️ ${terrain.map.name}` : `🗺️ ${terrain.map.name} — ${terrain.map.hint}`;
+        overlayCtx.fillText(mapLine, viewW * 0.5, labelY + (isSmallView ? 13 : 16));
+        overlayCtx.textAlign = 'left';
+      }
     }
 
     function renderOverlay(dt) {
@@ -3979,6 +4704,18 @@
         overlayCtx.lineTo(deployX, arena.bottom);
         overlayCtx.stroke();
         overlayCtx.setLineDash([]);
+
+        // L'itinéraire probable de l'ennemi
+        if (enemyRoute.length >= 4) {
+          overlayCtx.strokeStyle = 'rgba(251, 113, 133, 0.75)';
+          overlayCtx.lineWidth = 2.4 / zoom;
+          overlayCtx.setLineDash([9 / zoom, 8 / zoom]);
+          overlayCtx.beginPath();
+          overlayCtx.moveTo(enemyRoute[0], enemyRoute[1]);
+          for (let p = 2; p < enemyRoute.length; p += 2) overlayCtx.lineTo(enemyRoute[p], enemyRoute[p + 1]);
+          overlayCtx.stroke();
+          overlayCtx.setLineDash([]);
+        }
         overlayCtx.restore();
       }
 
@@ -4096,6 +4833,14 @@
     }
 
     function returnToNeutralScreen(outcome) {
+      // La vague suivante change de carte : on garde une copie de celle de cette bataille pour le tableau
+      const battleTerrain = document.createElement('canvas');
+      battleTerrain.width = terrainCanvas.width;
+      battleTerrain.height = terrainCanvas.height;
+      battleTerrain.getContext('2d').drawImage(terrainCanvas, 0, 0);
+      const battleTerrainInfo = { image: battleTerrain, scale: terrainLayer.scale, left: terrainLayer.left, top: terrainLayer.top };
+      const battleMapName = terrain.map ? terrain.map.name : '';
+
       const diff = DIFFICULTY_PRESETS[state.difficulty];
       const stats = state.waveStats;
       const survivors = playerCount;
@@ -4161,7 +4906,8 @@
         showTableau({
           outcome, wave: completedWave, stars, survivors, duration,
           kills: stats.kills, lost: stats.lost, inkUsed: stats.inkUsed,
-          bonusGold, starGold, interestGold, kind: outcome
+          bonusGold, starGold, interestGold, kind: outcome,
+          terrain: battleTerrainInfo, mapName: battleMapName
         });
       }
       saveGame();
@@ -4235,6 +4981,17 @@
 
       ctx.fillStyle = '#0a0f1a';
       ctx.fillRect(0, 0, W, H);
+      if (info.terrain) {
+        const t = info.terrain;
+        ctx.drawImage(
+          t.image,
+          (crop.x - t.left) * t.scale,
+          (crop.y - t.top) * t.scale,
+          crop.w * t.scale,
+          crop.h * t.scale,
+          0, 0, W, H
+        );
+      }
       ctx.drawImage(
         paintCanvas,
         (crop.x - paintLayer.left) * paintLayer.scale,
@@ -4283,6 +5040,7 @@
         : '';
 
       const rows = [
+        ['Terrain', info.mapName],
         ['Ennemis vaincus', info.kills],
         ['Unités perdues', info.lost],
         ['Survivants', info.survivors],
@@ -4569,6 +5327,7 @@
       const cards = [
         ['🖌️ Peignez votre armée', paintHelp],
         ['📐 Anticipez', "Observez la formation ennemie annoncée en haut : coin, croissant, pinces… Placez les Tanks devant, les Archers et les Mages derrière, puis ajustez avec le pronostic."],
+        ['🗺️ Lisez le terrain', "Chaque vague a sa carte. Les murs bloquent tout sauf les orbes des Mages. Les trous bloquent les unités, mais les tirs passent au-dessus. Le marais ralentit. Les pointillés rouges montrent la route probable de l'ennemi : c'est là qu'il faut l'attendre."],
         ['🔥 Peignez vos sorts', spellHelp],
         ['🖼️ Collectionnez', "Chaque bataille laisse un tableau unique, nommé et signé. Il rejoint votre galerie et vous pouvez l'enregistrer. Finissez avec beaucoup de survivants pour gagner des étoiles et de l'or."],
         ['🌳 Progressez', "Dépensez votre or dans l'arbre de compétences pour débloquer Assassins, Mages, et davantage d'encre. Votre armée et le terrain grandissent à chaque vague."],
@@ -4655,9 +5414,10 @@
       let columnX = frontX;
 
       // Déploie un corps d'armée en colonnes, de l'avant vers l'arrière
-      function deployCorps(uType, budget, spacingX, spacingY) {
+      function deployCorps(uType, budget, spacingX, spacingY, populationShare = 1) {
         const cost = UNIT_SPECS[uType].cost;
-        let count = Math.floor(budget / cost);
+        // L'or peut abonder : la population reste répartie, pour garder une armée équilibrée
+        let count = Math.min(Math.floor(budget / cost), Math.floor(state.maxPopulation * populationShare));
         const maxRows = Math.max(6, Math.floor(maxFormationHeight / spacingY));
         const rows = Math.min(maxRows, Math.max(6, Math.ceil(Math.sqrt(count * 3.2))));
         while (count > 0 && columnX > arena.left + 16) {
@@ -4679,7 +5439,10 @@
 
       // 1. Assassins sur les flancs de la ligne de front
       if (hasAssassins) {
-        const numAssassins = Math.floor((totalGold * 0.10) / UNIT_SPECS[TYPE_ASSASSIN].cost);
+        const numAssassins = Math.min(
+          Math.floor((totalGold * 0.10) / UNIT_SPECS[TYPE_ASSASSIN].cost),
+          Math.floor(state.maxPopulation * 0.06)
+        );
         for (let i = 0; i < numAssassins; i++) {
           if (state.gold < UNIT_SPECS[TYPE_ASSASSIN].cost || playerCount >= state.maxPopulation) break;
           state.gold -= UNIT_SPECS[TYPE_ASSASSIN].cost;
@@ -4691,14 +5454,15 @@
       }
 
       // 2. Mur de Tanks, 3. Fantassins, 4. Archers, 5. Mages à l'arrière
-      deployCorps(TYPE_TANK, totalGold * 0.30, 24, 22);
-      deployCorps(TYPE_SWARMER, totalGold * 0.24, 17, 16);
-      deployCorps(TYPE_ARCHER, totalGold * (hasMages ? 0.20 : 0.30), 20, 18);
-      if (hasMages) deployCorps(TYPE_MAGE, totalGold * 0.14, 26, 26);
+      deployCorps(TYPE_TANK, totalGold * 0.30, 24, 22, 0.22);
+      deployCorps(TYPE_SWARMER, totalGold * 0.24, 17, 16, 0.26);
+      deployCorps(TYPE_ARCHER, totalGold * (hasMages ? 0.20 : 0.30), 20, 18, hasMages ? 0.26 : 0.4);
+      if (hasMages) deployCorps(TYPE_MAGE, totalGold * 0.14, 26, 26, 0.2);
 
       // 6. L'or restant renforce l'arrière-garde
       deployCorps(TYPE_SWARMER, state.gold, 17, 16);
 
+      settleTeamOnTerrain(0);
       clearAndRebuildSpatialGrid();
       saveCurrentPlayerFormation();
       updateSkillNotificationDot();
@@ -4719,7 +5483,8 @@
     }
 
     function isInsideDeployZone(worldX, worldY) {
-      return worldX >= arena.left && worldX <= DEPLOY_LINE_X - 10 && worldY >= arena.top && worldY <= arena.bottom;
+      return worldX >= arena.left && worldX <= DEPLOY_LINE_X - 10 && worldY >= arena.top && worldY <= arena.bottom &&
+        !isTerrainBlockedAt(worldX, worldY);
     }
 
     // En mode zone, le pinceau garde sa taille à l'écran : dézoomer permet de peindre plus large
@@ -5168,10 +5933,12 @@
 
       updateCamera(rawDt);
       updatePaintLayerTransform();
+      updateTerrainLayerTransform();
       updateShake(rawDt);
       updateTitleSplats(rawDt);
       try { updateMusic(); } catch (err) {}
       updateCanvasCursor();
+      if (routeDirty && !state.inBattle) computeEnemyRoute();
       updateTouchPaint();
       handlePaintBrush(rawDt);
       if (releaseTouchPaintAfterFrame) stopTouchPaint();
