@@ -1153,7 +1153,7 @@
     }
     .title-screen.open { display: flex; }
     .modal-overlay#tableauModal { z-index: 55; }
-    .modal-overlay#galleryModal, .modal-overlay#helpModal { z-index: 70; }
+    .modal-overlay#galleryModal, .modal-overlay#helpModal, .modal-overlay#duoModal, .modal-overlay#titanTreeModal { z-index: 70; }
 
     .title-content {
       display: flex;
@@ -1207,6 +1207,156 @@
     .title-buttons-row .btn { flex: 1; font-size: 11px; padding-left: 6px; padding-right: 6px; }
     .btn.title-btn { justify-content: center; padding-top: 13px; padding-bottom: 13px; }
     .title-record { font-size: 12px; font-weight: 700; color: var(--gold); min-height: 16px; }
+
+    /* =====================================================================
+       LE TITAN ET LE MODE DUO
+       ===================================================================== */
+    .titan-panel, .titan-stick { display: none; }
+    body.duo-mode .titan-panel { display: flex; }
+    .titan-panel {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      flex-direction: column;
+      gap: 6px;
+      width: 146px;
+      padding: 8px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(251, 191, 36, 0.5);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+    }
+    .titan-panel-title { font-size: 11px; font-weight: 900; letter-spacing: 0.6px; color: var(--gold); }
+    .titan-hp-track { position: relative; height: 15px; background: rgba(255, 255, 255, 0.09); border-radius: 5px; overflow: hidden; }
+    .titan-hp-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #f59e0b, #fde68a); }
+    .titan-hp-label { position: absolute; inset: 0; text-align: center; font-size: 9.5px; font-weight: 900; line-height: 15px; color: #fff; text-shadow: 0 1px 2px #000; }
+    .titan-abilities { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .titan-ability {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 38px;
+      font-size: 15px;
+      color: #fff;
+      background: rgba(251, 191, 36, 0.16);
+      border: 1px solid rgba(251, 191, 36, 0.55);
+      border-radius: 8px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .titan-ability-cd { font-size: 11px; font-weight: 900; font-family: 'Courier New', Courier, monospace; }
+    .titan-ability.locked { opacity: 0.38; filter: grayscale(0.9); }
+    .titan-ability.cooling { opacity: 0.6; background: rgba(148, 163, 184, 0.14); border-color: rgba(148, 163, 184, 0.4); }
+    .btn.titan-tree-btn { justify-content: center; padding: 7px 6px; font-size: 12px; }
+    .btn.titan-tree-btn.affordable { box-shadow: 0 0 14px rgba(251, 191, 36, 0.8); outline: 2px solid var(--gold); }
+
+    .titan-stick {
+      position: absolute;
+      left: 22px;
+      bottom: 110px;
+      width: 112px;
+      height: 112px;
+      align-items: center;
+      justify-content: center;
+      background: rgba(251, 191, 36, 0.1);
+      border: 2px solid rgba(251, 191, 36, 0.5);
+      border-radius: 50%;
+      touch-action: none;
+    }
+    .titan-stick-knob { width: 46px; height: 46px; background: rgba(251, 191, 36, 0.75); border-radius: 50%; }
+    @media (pointer: coarse) {
+      body.duo-mode .titan-stick { display: flex; }
+    }
+
+    /* L'invité ne garde que les commandes du Titan */
+    body.role-guest .bottom-bar,
+    body.role-guest #speedBtn,
+    body.role-guest #upgradeMenuBtn { display: none; }
+    body.role-guest #difficultySelect { pointer-events: none; opacity: 0.6; }
+
+    .duo-sheet { width: min(640px, 96vw); }
+    .duo-body { padding: 16px; overflow: auto; }
+    .duo-step { display: none; flex-direction: column; gap: 10px; }
+    .duo-step.active { display: flex; }
+    .duo-intro { font-size: 13px; line-height: 1.45; color: #cbd5e1; }
+    .duo-row { display: flex; gap: 8px; align-items: stretch; }
+    .duo-field {
+      flex: 1;
+      min-width: 0;
+      padding: 8px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: var(--text);
+      background: rgba(2, 6, 14, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 8px;
+      resize: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .duo-details { font-size: 12px; color: var(--text-muted); }
+    .duo-details .duo-row { margin-top: 8px; }
+    .duo-status { min-height: 16px; font-size: 12px; font-weight: 700; color: var(--gold); }
+
+    .titan-tree-modal {
+      display: flex;
+      flex-direction: column;
+      width: min(1040px, 96vw);
+      height: min(860px, 94vh);
+      background: radial-gradient(circle at 50% 42%, rgba(38, 28, 58, 0.99), rgba(6, 8, 18, 0.99));
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      border-radius: 18px;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.9);
+      overflow: hidden;
+    }
+    .titan-souls-chip { font-size: 13px; font-weight: 900; color: var(--gold); white-space: nowrap; }
+    .titan-tree-body { flex: 1; min-height: 0; display: flex; }
+    .titan-tree-stage { position: relative; flex: 1; min-width: 0; min-height: 0; }
+    #titanTreeSvg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .titan-node { cursor: pointer; }
+    .titan-node:hover circle { fill: rgba(51, 65, 85, 0.98); }
+    .titan-branch-label { font-size: 21px; font-weight: 900; }
+    .titan-preview {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      height: 27%;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      background: rgba(10, 10, 22, 0.9);
+      border: 3px solid rgba(251, 191, 36, 0.7);
+      border-radius: 50%;
+      cursor: pointer;
+      overflow: visible;
+    }
+    .titan-preview canvas { width: 100%; height: 100%; }
+    .titan-size-label {
+      position: absolute;
+      bottom: 7%;
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 0 1px 3px #000;
+    }
+    .titan-inspector {
+      flex: 0 0 240px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 16px;
+      background: rgba(6, 10, 19, 0.75);
+      border-left: 1px solid rgba(251, 191, 36, 0.25);
+    }
+    .titan-insp-title { font-size: 15px; font-weight: 900; color: var(--gold); line-height: 1.25; }
+    .titan-insp-desc { font-size: 12.5px; line-height: 1.45; color: #cbd5e1; flex: 1; }
+    .titan-inspector .btn { justify-content: center; white-space: normal; text-align: center; }
 
     /* =====================================================================
        PETITS ÉCRANS (téléphones en portrait et en paysage)
@@ -1303,6 +1453,19 @@
       .title-buttons { margin-top: 2px; gap: 5px; }
       .btn.title-btn { padding-top: 7px; padding-bottom: 7px; }
 
+      .titan-panel { left: max(5px, env(safe-area-inset-left)); width: 104px; padding: 4px; gap: 3px; top: auto; bottom: 60px; transform: none; }
+      .titan-panel-title { display: none; }
+      .titan-ability { height: 30px; font-size: 13px; }
+      .btn.titan-tree-btn { min-height: 28px; padding: 3px; }
+      .titan-stick { left: auto; right: 60px; bottom: 62px; width: 92px; height: 92px; }
+      .titan-stick-knob { width: 38px; height: 38px; }
+      .titan-tree-modal { width: 100%; height: 100%; border-radius: 0; border: 0; }
+      .titan-inspector { flex-basis: 190px; padding: 8px; gap: 5px; }
+      .titan-insp-title { font-size: 12px; }
+      .titan-insp-desc { font-size: 10.5px; }
+      .titan-branch-label { display: none; }
+      .duo-body { padding: 10px; }
+
       /* Arbre de compétences */
       .modal-overlay { padding: 0; }
       .skill-tree-modal { width: 100%; max-width: none; height: 100%; max-height: none; border-radius: 0; }
@@ -1330,6 +1493,8 @@
     }
 
     @media (max-width: 600px) {
+      .titan-tree-body { flex-direction: column; }
+      .titan-inspector { flex: 0 0 auto; border-left: 0; border-top: 1px solid rgba(251, 191, 36, 0.25); }
       .tableau-modal { flex-direction: column; overflow: auto; }
       .tableau-frame { flex: 0 0 auto; }
       .tableau-side { flex: 1 0 auto; }
@@ -1408,10 +1573,10 @@
 
       <div class="hud-stats">
         <div class="stat-badge gold" title="Or disponible pour recruter des unités ou débloquer des nœuds dans l'Arbre de Compétences">
-          <span>🪙 <span class="stat-word">OR:</span></span> <span id="goldDisplay" class="val">180</span>
+          <span>🪙 <span class="stat-word">OR:</span></span> <span id="goldDisplay" class="val">10</span>
         </div>
         <div class="stat-badge">
-          <span>🛡️ <span class="stat-word">ARMÉE:</span></span> <span id="playerUnitsDisplay" class="val" style="color: #38bdf8;">0</span>/<span id="maxPopDisplay">300</span>
+          <span>🛡️ <span class="stat-word">ARMÉE:</span></span> <span id="playerUnitsDisplay" class="val" style="color: #38bdf8;">0</span>/<span id="maxPopDisplay">30</span>
         </div>
         <div class="stat-badge">
           <span>💀 <span class="stat-word">ENNEMIS:</span></span> <span id="enemyUnitsDisplay" class="val" style="color: #f43f5e;">0</span>
@@ -1431,6 +1596,20 @@
         <button id="menuBtn" class="btn btn-secondary hud-btn icon-btn" title="Menu principal">☰</button>
       </div>
     </div>
+
+    <!-- Commandes du Titan -->
+    <div class="titan-panel interactive" id="titanPanel">
+      <div class="titan-panel-title">🗿 TITAN</div>
+      <div class="titan-hp-track"><div id="titanHpFill" class="titan-hp-fill"></div><span id="titanHpLabel" class="titan-hp-label"></span></div>
+      <div class="titan-abilities">
+        <button class="titan-ability locked" data-ability="slam" title="Onde de Choc (J)"><span>💥</span><span class="titan-ability-cd">🔒</span></button>
+        <button class="titan-ability locked" data-ability="beam" title="Rayon (K)"><span>🔆</span><span class="titan-ability-cd">🔒</span></button>
+        <button class="titan-ability locked" data-ability="charge" title="Charge (L)"><span>🐂</span><span class="titan-ability-cd">🔒</span></button>
+        <button class="titan-ability locked" data-ability="rally" title="Cri de Ralliement (I)"><span>📯</span><span class="titan-ability-cd">🔒</span></button>
+      </div>
+      <button id="titanTreeBtn" class="btn btn-primary titan-tree-btn" title="Arbre d'évolution du Titan (T)">🧬 <span id="titanSouls">0</span> 👻</button>
+    </div>
+    <div class="titan-stick interactive" id="titanStick" aria-label="Joystick du Titan"><div class="titan-stick-knob" id="titanStickKnob"></div></div>
 
     <!-- Zoom -->
     <div class="zoom-controls interactive">
@@ -1548,6 +1727,7 @@
         <div class="tableau-actions">
           <button id="tableauContinueBtn" class="btn btn-battle"></button>
           <button id="tableauUpgradeBtn" class="btn btn-primary">🌳 AMÉLIORATIONS</button>
+          <button id="tableauTitanBtn" class="btn btn-primary" style="display: none;">🧬 ÉVOLUER LE TITAN</button>
           <div class="tableau-actions-row">
             <button id="tableauSaveBtn" class="btn btn-secondary">💾 ENREGISTRER</button>
             <button id="tableauGalleryBtn" class="btn btn-secondary">🖼️ GALERIE</button>
@@ -1565,6 +1745,84 @@
         <button class="btn btn-secondary sheet-close" data-close="galleryModal">✕ FERMER</button>
       </div>
       <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </div>
+
+  <!-- Mode Duo -->
+  <div class="modal-overlay" id="duoModal">
+    <div class="sheet-modal duo-sheet">
+      <div class="sheet-header">
+        <span>🤝 MODE DUO</span>
+        <button class="btn btn-secondary sheet-close" data-close="duoModal">✕ FERMER</button>
+      </div>
+      <div class="duo-body">
+        <div class="duo-step" data-step="menu">
+          <p class="duo-intro"><b>Le Général</b> peint son armée comme d'habitude. <b>Le Titan</b> ne dirige qu'une seule unité, immense, avec son propre arbre d'évolution. Les vagues sont 50% plus grosses.</p>
+          <button id="duoLocalBtn" class="btn btn-battle title-btn">🖥️ SUR LE MÊME ÉCRAN</button>
+          <button id="duoHostBtn" class="btn btn-primary title-btn">🌐 EN LIGNE : CRÉER LA PARTIE (GÉNÉRAL)</button>
+          <button id="duoJoinBtn" class="btn btn-secondary title-btn">🔗 EN LIGNE : REJOINDRE (TITAN)</button>
+        </div>
+        <div class="duo-step" data-step="host">
+          <p class="duo-intro"><b>1.</b> Envoyez ce lien à l'autre joueur :</p>
+          <div class="duo-row">
+            <input id="duoHostLink" class="duo-field" readonly aria-label="Lien d'invitation">
+            <button class="btn btn-primary" data-copy="duoHostLink">COPIER</button>
+          </div>
+          <details class="duo-details">
+            <summary>Ou utilisez le code d'invitation</summary>
+            <div class="duo-row">
+              <textarea id="duoHostCode" class="duo-field" rows="3" readonly aria-label="Code d'invitation"></textarea>
+              <button class="btn btn-secondary" data-copy="duoHostCode">COPIER</button>
+            </div>
+          </details>
+          <p class="duo-intro"><b>2.</b> Il vous renverra un code de réponse. Collez-le ici :</p>
+          <div class="duo-row">
+            <textarea id="duoHostAnswer" class="duo-field" rows="3" placeholder="Code de réponse" aria-label="Code de réponse"></textarea>
+            <button id="duoHostAcceptBtn" class="btn btn-battle">CONNECTER</button>
+          </div>
+          <div class="duo-status" id="duoHostStatus"></div>
+          <button class="btn btn-secondary" data-duo-step="menu">← RETOUR</button>
+        </div>
+        <div class="duo-step" data-step="join">
+          <p class="duo-intro"><b>1.</b> Collez le code d'invitation du Général (si vous avez ouvert son lien, il est déjà rempli) :</p>
+          <div class="duo-row">
+            <textarea id="duoGuestOffer" class="duo-field" rows="3" placeholder="Code d'invitation" aria-label="Code d'invitation"></textarea>
+            <button id="duoGuestAnswerBtn" class="btn btn-primary">VALIDER</button>
+          </div>
+          <p class="duo-intro"><b>2.</b> Renvoyez-lui ce code de réponse :</p>
+          <div class="duo-row">
+            <textarea id="duoGuestAnswer" class="duo-field" rows="3" readonly aria-label="Code de réponse"></textarea>
+            <button class="btn btn-battle" data-copy="duoGuestAnswer">COPIER</button>
+          </div>
+          <div class="duo-status" id="duoGuestStatus"></div>
+          <button class="btn btn-secondary" data-duo-step="menu">← RETOUR</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arbre d'évolution du Titan -->
+  <div class="modal-overlay" id="titanTreeModal">
+    <div class="titan-tree-modal">
+      <div class="sheet-header">
+        <span>🧬 ÉVOLUTION DU TITAN</span>
+        <span class="titan-souls-chip">👻 <span id="titanTreeSouls">0</span> ÂMES</span>
+        <button class="btn btn-secondary sheet-close" data-close="titanTreeModal">✕ FERMER</button>
+      </div>
+      <div class="titan-tree-body">
+        <div class="titan-tree-stage">
+          <svg id="titanTreeSvg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Arbre d'évolution du Titan"></svg>
+          <button id="titanPreviewBtn" class="titan-preview" aria-label="Voir le Titan et sa compétence Éveil">
+            <canvas id="titanPreview" width="300" height="300"></canvas>
+            <span id="titanSizeLabel" class="titan-size-label"></span>
+          </button>
+        </div>
+        <div class="titan-inspector">
+          <div class="titan-insp-title" id="titanInspTitle"></div>
+          <div class="titan-insp-desc" id="titanInspDesc"></div>
+          <button id="titanBuyBtn" class="btn btn-battle"></button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1592,6 +1850,7 @@
       <div class="title-buttons">
         <button id="titleContinueBtn" class="btn btn-battle title-btn"></button>
         <button id="titleNewBtn" class="btn btn-primary title-btn">🎨 NOUVELLE PARTIE</button>
+        <button id="titleDuoBtn" class="btn btn-preset title-btn">🤝 MODE DUO : GÉNÉRAL + TITAN</button>
         <div class="title-buttons-row">
           <button id="titleGalleryBtn" class="btn btn-secondary title-btn">🖼️ GALERIE</button>
           <button id="titleHelpBtn" class="btn btn-secondary title-btn">❓ COMMENT JOUER</button>
@@ -1608,7 +1867,7 @@
         <div class="modal-title">
           <span>🌳 <span class="btn-word">ARBRE DE COMPÉTENCES TACTIQUE</span></span>
           <span class="modal-gold" style="font-size: 13px; padding: 4px 10px; border-radius: 8px; background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.4); color: var(--gold);">
-            🪙 OR DISPONIBLE : <span id="modalGoldDisplay">180</span>
+            🪙 OR DISPONIBLE : <span id="modalGoldDisplay">10</span>
           </span>
           <span class="modal-invested" style="font-size: 12px; color: var(--text-muted); font-weight: 700;">
             (Investi : <span id="modalSpentGoldDisplay" style="color: #38bdf8;">0</span> 🪙)
@@ -1680,12 +1939,15 @@
     const TYPE_ASSASSIN = 3;
     const TYPE_MAGE     = 4;
     const TYPE_BOSS     = 5;
+    const TYPE_TITAN    = 6;
 
     const ARMY_MARCH_SPEED = 64.0;
-    const POPULATION_PER_WAVE = 20;
+    // On commence avec de quoi recruter 5 Fantassins : tout le plaisir est de finir titanesque
+    const START_GOLD = 10;
     // Votre armée revient gratuitement à chaque vague : les vagues doivent grandir plus vite que votre or
-    const ENEMY_BUDGET_RAMP = 0.22;
     const KILL_REWARD_RATE = 0.45;
+    const VICTORY_BONUS_RATE = 0.85;
+    const DEFEAT_BONUS_RATE = 0.3;
     const ENEMY_HP_GROWTH = 0.17;
     const ENEMY_DMG_GROWTH = 0.13;
 
@@ -1696,7 +1958,8 @@
       { name: "Tank",      plural: "Tanks",      cost: 10, hp: 560,  dmg: 23, speed: 52,  range: 24,  rate: 0.92, radius: 9.5,  mass: 5.5,  powerWeight: 11.5, color: [0.65, 0.55, 0.98, 1.0] },
       { name: "Assassin",  plural: "Assassins",  cost: 15, hp: 155,  dmg: 56, speed: 118, range: 21,  rate: 0.62, radius: 6.8,  mass: 1.5,  powerWeight: 18.0, color: [0.98, 0.75, 0.14, 1.0] },
       { name: "Mage AoE",  plural: "Mages AoE",  cost: 25, hp: 125,  dmg: 52, speed: 56,  range: 245, rate: 2.00, radius: 7.8,  mass: 1.6,  powerWeight: 30.0, color: [0.96, 0.45, 0.71, 1.0] },
-      { name: "Boss",      plural: "Boss",       cost: 80, hp: 2400, dmg: 62, speed: 42,  range: 36,  rate: 1.15, radius: 20.0, mass: 22.0, powerWeight: 95.0, color: [0.98, 0.12, 0.25, 1.0] }
+      { name: "Boss",      plural: "Boss",       cost: 80, hp: 2400, dmg: 62, speed: 42,  range: 36,  rate: 1.15, radius: 20.0, mass: 22.0, powerWeight: 95.0, color: [0.98, 0.12, 0.25, 1.0] },
+      { name: "Titan",     plural: "Titans",     cost: 0,  hp: 400,  dmg: 30, speed: 95,  range: 30,  rate: 0.65, radius: 26.0, mass: 999.0, powerWeight: 40.0, color: [1.0, 0.82, 0.32, 1.0] }
     ];
 
     const DIFFICULTY_PRESETS = {
@@ -1711,6 +1974,7 @@
       [0.82, 0.15, 0.30, 1.0],
       [1.00, 0.20, 0.60, 1.0],
       [0.88, 0.15, 0.50, 1.0],
+      [1.00, 0.08, 0.18, 1.0],
       [1.00, 0.08, 0.18, 1.0]
     ];
 
@@ -1771,6 +2035,11 @@
 
     const aoeRings = [];
 
+    function addRing(x, y, maxR, color, life = 0.28) {
+      aoeRings.push({ x, y, maxR, life, maxLife: life, color });
+      netEmit('r', Math.round(x), Math.round(y), Math.round(maxR), color, life);
+    }
+
     // Éclats à la mort d'une unité
     const MAX_SHARDS = 1800;
     const shard_x = new Float32Array(MAX_SHARDS);
@@ -1806,6 +2075,8 @@
     const WORLD_CY = WORLD_H * 0.5;
     const ARENA_BASE_W = 1600;
     const ARENA_BASE_H = 760;
+    const ARENA_MIN_SCALE = 0.5;
+    const ARENA_GROWTH_PER_WAVE = 0.022;
     const ARENA_MAX_SCALE = 6.0;
     // Surface d'armée (px²) au-delà de laquelle l'arène grandit : les armées gardent ainsi la même
     // proportion à l'écran, et le dézoom automatique rend leur taille croissante visible au fil des vagues.
@@ -1814,7 +2085,7 @@
     const DEPLOY_LINE_X = WORLD_CX - 120;
     const ENEMY_FRONT_X = WORLD_CX + 300;
 
-    const arena = { scale: 1, left: 0, right: 0, top: 0, bottom: 0, w: 0, h: 0 };
+    const arena = { scale: ARENA_MIN_SCALE, left: 0, right: 0, top: 0, bottom: 0, w: 0, h: 0 };
 
     // Grille de hachage spatial O(1)
     const gridCols = Math.ceil(WORLD_W / SPATIAL_CELL_SIZE) + 2;
@@ -1823,8 +2094,8 @@
     const entityNext = new Int32Array(MAX_ENTITIES);
 
     // Caméra : (x, y) est le point du monde affiché au centre de la fenêtre.
-    const CAMERA_MAX_ZOOM = 3.0;
-    const CAMERA_MAX_AUTO_ZOOM = 1.4;
+    const CAMERA_MAX_ZOOM = 4.0;
+    const CAMERA_MAX_AUTO_ZOOM = 2.6;
     const CAMERA_OVERVIEW_MARGIN = 0.6;  // Permet de dézoomer un peu au-delà de l'arène entière
     const CAMERA_SMOOTHING = 12.0;
     const CAMERA_PAN_SPEED = 900;        // px écran / seconde
@@ -1948,10 +2219,12 @@
 
     // L'arène ne rétrécit jamais pendant une partie : une formation déjà peinte reste toujours à l'intérieur.
     let lastEnemyFootprint = 0;
+    let peakArmySize = 0;
     function updateArena() {
-      const playerFootprint = state.maxPopulation * PLAYER_FOOTPRINT_PER_UNIT;
+      const playerFootprint = peakArmySize * PLAYER_FOOTPRINT_PER_UNIT;
       const wanted = Math.sqrt(Math.max(lastEnemyFootprint, playerFootprint) / ARENA_COMFORT_FOOTPRINT);
-      arena.scale = Math.min(ARENA_MAX_SCALE, Math.max(arena.scale, wanted, 1.0));
+      const waveMinimum = ARENA_MIN_SCALE + (state.wave - 1) * ARENA_GROWTH_PER_WAVE;
+      arena.scale = Math.min(ARENA_MAX_SCALE, Math.max(arena.scale, wanted, waveMinimum));
       arena.w = ARENA_BASE_W * arena.scale;
       arena.h = ARENA_BASE_H * arena.scale;
       arena.left = WORLD_CX - arena.w * 0.5;
@@ -2347,7 +2620,7 @@
 
       const misplaced = [];
       for (let i = 0; i < MAX_ENTITIES; i++) {
-        if (active[i] === 0 || team[i] !== teamIdx) continue;
+        if (active[i] === 0 || team[i] !== teamIdx || shape_type[i] === TYPE_TITAN) continue;
         const c = terrainCellAt(pos_x[i], pos_y[i]);
         if (c >= 0 && isFree(c)) {
           occupancy[c]++;
@@ -2546,7 +2819,7 @@
     // 2. ARBRE DE COMPÉTENCES VISUEL INTERACTIF & MODIFICATEURS TACTIQUES
     // =========================================================================
     const state = {
-      gold: 180,
+      gold: START_GOLD,
       spentTreeGold: 0,
       wave: 1,
       difficulty: 'normal',
@@ -2555,6 +2828,7 @@
       gameSpeed: 1.0,
       selectedUnit: TYPE_SWARMER,
       eraseTool: false,
+      duo: false,
       ink: 0,
       maxInk: 100,
       inkRegen: 4,
@@ -2562,8 +2836,8 @@
       paused: false,
       waveStats: { kills: 0, lost: 0, startArmy: 0, startClock: 0, inkUsed: { fire: 0, ice: 0, heal: 0 } },
       brushRadius: 18,
-      basePopulation: 300,
-      maxPopulation: 300,
+      basePopulation: 30,
+      maxPopulation: 30,
       unlockedUnits: [true, true, true, false, false],
       selectedSkillId: 'root_cmd',
       mods: {
@@ -2881,8 +3155,9 @@
       state.maxInk = 100 + c5 * 25;
       state.inkRegen = 4 + c5 * 1.5;
 
-      // L'armée grandit avec les vagues : c'est tout l'intérêt de la vue dézoomée
-      state.maxPopulation = state.basePopulation + (state.wave - 1) * POPULATION_PER_WAVE + e2 * 120;
+      // L'armée grandit avec les vagues, de plus en plus vite : c'est tout l'intérêt de la vue dézoomée
+      const wavesDone = state.wave - 1;
+      state.maxPopulation = Math.round(state.basePopulation + wavesDone * 30 + wavesDone * wavesDone * 0.6 + e2 * 120);
       state.mods.interestRate = e3 * 0.10;
       state.mods.interestCap = e3 * 150;
 
@@ -2909,6 +3184,10 @@
     }
 
     function applyUnitStats(idx, uTeam, uType) {
+      if (uType === TYPE_TITAN) {
+        applyTitanStats(idx);
+        return;
+      }
       const spec = UNIT_SPECS[uType];
       const isPlayer = (uTeam === 0);
 
@@ -2937,8 +3216,8 @@
         // Courbe d'équilibrage lisse selon la vague et la difficulté choisie
         const diff = DIFFICULTY_PRESETS[state.difficulty];
         const w = Math.max(1, state.wave);
-        const enemyWaveScaleHp = (0.82 + Math.pow(w - 1, 1.5) * ENEMY_HP_GROWTH) * diff.hpMult;
-        const enemyWaveScaleDmg = (0.84 + Math.pow(w - 1, 1.4) * ENEMY_DMG_GROWTH) * diff.dmgMult;
+        const enemyWaveScaleHp = (0.82 + (w - 1) * 0.06 + Math.pow(Math.max(0, w - 6), 1.5) * ENEMY_HP_GROWTH) * diff.hpMult;
+        const enemyWaveScaleDmg = (0.84 + (w - 1) * 0.04 + Math.pow(Math.max(0, w - 6), 1.4) * ENEMY_DMG_GROWTH) * diff.dmgMult;
 
         hp[idx] = spec.hp * enemyWaveScaleHp;
         max_hp[idx] = hp[idx];
@@ -3184,7 +3463,7 @@
 
     function spawnUnit(x, y, uTeam, uType) {
       if (activeEntityCount >= MAX_ENTITIES) return -1;
-      if (uTeam === 0 && playerCount >= state.maxPopulation) return -1;
+      if (uTeam === 0 && uType !== TYPE_TITAN && playerCount >= state.maxPopulation) return -1;
 
       const idx = findFreeEntitySlot();
       if (idx === -1) return -1;
@@ -3211,12 +3490,22 @@
       slow_until[idx] = 0;
 
       activeEntityCount++;
-      if (uTeam === 0) playerCount++; else enemyCount++;
+      if (uType === TYPE_TITAN) {
+        titan.idx = idx;
+      } else if (uTeam === 0) {
+        playerCount++;
+      } else {
+        enemyCount++;
+      }
       return idx;
     }
 
     function destroyEntity(idx, refund = false) {
       if (active[idx] === 0) return;
+      if (shape_type[idx] === TYPE_TITAN) {
+        handleTitanFall(idx);
+        return;
+      }
       active[idx] = 0;
       activeEntityCount--;
 
@@ -3238,6 +3527,7 @@
       } else {
         enemyCount--;
         state.waveStats.kills++;
+        creditTitanKill(uType);
         state.ink = Math.min(state.maxInk, state.ink + (uType === TYPE_BOSS ? INK_PER_BOSS : INK_PER_KILL));
         const diff = DIFFICULTY_PRESETS[state.difficulty];
         const baseReward = Math.max(1, UNIT_SPECS[uType].cost * KILL_REWARD_RATE);
@@ -3317,6 +3607,11 @@
       }
     }
 
+    // La référence de toute l'économie : quelques Fantassins à la vague 1, des milliers d'unités ensuite
+    function waveBaseBudget(waveNum) {
+      return 4 + 4 * waveNum + Math.pow(waveNum, 2.6) + 0.02 * Math.pow(waveNum, 3.6);
+    }
+
     function generateEnemyWave(waveNum) {
       for (let i = 0; i < MAX_ENTITIES; i++) {
         if (active[i] === 1 && team[i] === 1) {
@@ -3328,8 +3623,7 @@
 
       const diff = DIFFICULTY_PRESETS[state.difficulty];
       // Budget progressif garantissant que les vagues 1-2 sont très accessibles
-      const budgetRamp = 1 + Math.max(0, waveNum - 3) * ENEMY_BUDGET_RAMP;
-      const waveBudget = Math.round((85 + waveNum * 55 + Math.pow(waveNum, 1.48) * 16) * budgetRamp * diff.budgetMult);
+      const waveBudget = Math.round(waveBaseBudget(waveNum) * diff.budgetMult * (state.duo ? DUO_BUDGET_MULT : 1));
 
       const counts = [0, 0, 0, 0, 0, 0];
       let remainingBudget = waveBudget;
@@ -3366,7 +3660,7 @@
         counts[TYPE_ASSASSIN] * UNIT_SPECS[TYPE_ASSASSIN].cost +
         counts[TYPE_ARCHER] * UNIT_SPECS[TYPE_ARCHER].cost;
 
-      const swarmerBudget = Math.max(24, remainingBudget - spentSoFar);
+      const swarmerBudget = Math.max(4, remainingBudget - spentSoFar);
       counts[TYPE_SWARMER] = Math.min(4500, Math.floor(swarmerBudget / UNIT_SPECS[TYPE_SWARMER].cost));
 
       // L'arène s'agrandit selon la place occupée par la vague (espacement X * espacement Y de chaque colonne)
@@ -3462,6 +3756,8 @@
       const victimType = shape_type[victimIdx];
 
       // Compétences défensives du joueur : Mur de Titan & Armure d'Épines
+      if (victimType === TYPE_TITAN) finalDmg *= (1.0 - titan.armor);
+
       if (victimTeam === 0) {
         if (victimType === TYPE_TANK && state.mods.tankArmorReduction > 0) {
           finalDmg *= (1.0 - state.mods.tankArmorReduction);
@@ -3500,7 +3796,7 @@
       const maxPushDist = 90.0 * dt;
 
       for (let i = 0; i < MAX_ENTITIES; i++) {
-        if (active[i] === 0) continue;
+        if (active[i] === 0 || shape_type[i] === TYPE_TITAN) continue;
         const px = pos_x[i];
         const py = pos_y[i];
         const r_i = radius[i];
@@ -3523,7 +3819,7 @@
 
             let other = gridHead[rowOffset + nx];
             while (other !== -1) {
-              if (other !== i) {
+              if (other !== i && shape_type[other] !== TYPE_TITAN) {
                 const diffX = px - pos_x[other];
                 const diffY = py - pos_y[other];
                 const minDist = r_i + radius[other] + 1.5;
@@ -3577,7 +3873,7 @@
       const tankRegen = state.mods.tankRegenPct;
 
       for (let i = 0; i < MAX_ENTITIES; i++) {
-        if (active[i] === 0) continue;
+        if (active[i] === 0 || shape_type[i] === TYPE_TITAN) continue;
 
         const myTeam = team[i];
         const px = pos_x[i];
@@ -3692,7 +3988,8 @@
             const inRange = dist <= myRange + radius[targetIdx];
             const clearWalk = !marching && segmentClear(px, py, tx, ty, true);
             const clearShot = isRanged && inRange && (uType === TYPE_MAGE || segmentClear(px, py, tx, ty, false));
-            canHit = isRanged ? clearShot : clearWalk;
+            // Le Titan enjambe le terrain : on peut toujours le frapper dès qu'il est à portée
+            canHit = (isRanged ? clearShot : clearWalk) || (targetIdx === titan.idx && inRange);
 
             if (!clearWalk) {
               if (clearShot) {
@@ -3718,17 +4015,17 @@
             cooldown[i] = max_cooldown[i];
 
             if (uType === TYPE_SWARMER || uType === TYPE_TANK || uType === TYPE_ASSASSIN || uType === TYPE_BOSS) {
-              applyDamageToUnit(i, targetIdx, damage[i], true);
+              applyDamageToUnit(i, targetIdx, damage[i] * titanAuraMultiplier(i, myTeam), true);
               if (Math.random() < 0.14) playSfx('hit');
             } else if (uType === TYPE_ARCHER) {
               const pSpd = 290.0 * (myTeam === 0 ? state.mods.archerProjSpeedMult : 1.0);
               const invD = 1.0 / (dist || 1);
-              spawnProjectile(px, py, dx * invD * pSpd, dy * invD * pSpd, damage[i], myTeam, 0);
+              spawnProjectile(px, py, dx * invD * pSpd, dy * invD * pSpd, damage[i] * titanAuraMultiplier(i, myTeam), myTeam, 0);
               if (Math.random() < 0.08) playSfx('shoot');
             } else if (uType === TYPE_MAGE) {
               const pSpd = 215.0;
               const invD = 1.0 / (dist || 1);
-              spawnProjectile(px, py, dx * invD * pSpd, dy * invD * pSpd, damage[i], myTeam, 1);
+              spawnProjectile(px, py, dx * invD * pSpd, dy * invD * pSpd, damage[i] * titanAuraMultiplier(i, myTeam), myTeam, 1);
               if (Math.random() < 0.12) playSfx('shoot');
             }
           }
@@ -3776,6 +4073,16 @@
         const isAoE = (proj_type[i] === 1);
         let hit = false;
 
+        // Le Titan est trop vaste pour la grille : il est testé à part
+        if (pTeam === 1 && titan.idx >= 0) {
+          const titanReach = radius[titan.idx] + 5;
+          if ((pos_x[titan.idx] - proj_x[i]) ** 2 + (pos_y[titan.idx] - proj_y[i]) ** 2 <= titanReach * titanReach) {
+            if (isAoE) triggerAoEExplosion(proj_x[i], proj_y[i], 52, proj_dmg[i], pTeam);
+            else applyDamageToUnit(-1, titan.idx, proj_dmg[i], false);
+            hit = true;
+          }
+        }
+
         for (let dy = -1; dy <= 1 && !hit; dy++) {
           const ny = cellY + dy;
           if (ny < 0 || ny >= gridRows) continue;
@@ -3785,7 +4092,7 @@
 
             let curr = gridHead[ny * gridCols + nx];
             while (curr !== -1) {
-              if (team[curr] !== pTeam) {
+              if (team[curr] !== pTeam && shape_type[curr] !== TYPE_TITAN) {
                 const dSq = (pos_x[curr] - proj_x[i]) ** 2 + (pos_y[curr] - proj_y[i]) ** 2;
                 const rSum = radius[curr] + 5;
                 if (dSq <= rSum * rSum) {
@@ -3812,7 +4119,13 @@
     }
 
     function triggerAoEExplosion(ex, ey, aoeRadius, dmg, pTeam) {
-      aoeRings.push({ x: ex, y: ey, maxR: aoeRadius, life: 0.28, color: pTeam === 0 ? '#f472b6' : '#fb7185' });
+      addRing(ex, ey, aoeRadius, pTeam === 0 ? '#f472b6' : '#fb7185');
+      if (pTeam === 1 && titan.idx >= 0) {
+        const reach = aoeRadius + radius[titan.idx];
+        if ((pos_x[titan.idx] - ex) ** 2 + (pos_y[titan.idx] - ey) ** 2 <= reach * reach) {
+          applyDamageToUnit(-1, titan.idx, dmg, false);
+        }
+      }
 
       const minCellX = Math.max(0, Math.floor((ex - aoeRadius) / SPATIAL_CELL_SIZE));
       const maxCellX = Math.min(gridCols - 1, Math.floor((ex + aoeRadius) / SPATIAL_CELL_SIZE));
@@ -3823,7 +4136,7 @@
         for (let cx = minCellX; cx <= maxCellX; cx++) {
           let curr = gridHead[cy * gridCols + cx];
           while (curr !== -1) {
-            if (team[curr] !== pTeam) {
+            if (team[curr] !== pTeam && shape_type[curr] !== TYPE_TITAN) {
               const dSq = (pos_x[curr] - ex) ** 2 + (pos_y[curr] - ey) ** 2;
               if (dSq <= aoeRadius * aoeRadius) {
                 applyDamageToUnit(-1, curr, dmg, false);
@@ -4079,7 +4392,8 @@
     function paintSplat(x, y, uTeam, uType) {
       if (splatBudget <= 0) return;
       splatBudget--;
-      const size = UNIT_SPECS[uType].radius * (1.1 + Math.random() * 1.1);
+      netEmit('s', Math.round(x), Math.round(y), uTeam, uType);
+      const size = (uType === TYPE_TITAN ? (titan.idx >= 0 ? radius[titan.idx] * 0.7 : 60) : UNIT_SPECS[uType].radius) * (1.1 + Math.random() * 1.1);
       paintBlob(x, y, size, PAINT_COLORS[uTeam][uType], 0.58);
     }
 
@@ -4098,6 +4412,7 @@
         if (speedSq < 100) continue;
         const uTeam = team[i];
         const uType = shape_type[i];
+        if (uType === TYPE_TITAN) continue;
         const path = trailPaths[uTeam][uType] || (trailPaths[uTeam][uType] = new Path2D());
         const r = radius[i] * 0.62;
         path.moveTo(pos_x[i] + r, pos_y[i]);
@@ -4120,7 +4435,7 @@
     let shardCursor = 0;
     function spawnShards(x, y, uTeam, uType) {
       const color = uTeam === 0 ? UNIT_SPECS[uType].color : ENEMY_COLORS[uType];
-      const big = uType === TYPE_BOSS;
+      const big = uType === TYPE_BOSS || uType === TYPE_TITAN;
       const count = big ? 34 : 4;
       for (let n = 0; n < count; n++) {
         const i = shardCursor;
@@ -4166,6 +4481,7 @@
       ice:  { label: 'GIVRE', cost: 2.5, life: 5.5, fill: 'rgba(103, 232, 249, 1)', paint: 'rgb(103, 232, 249)' },
       heal: { label: 'SOIN', cost: 3.0, life: 4.5, fill: 'rgba(74, 222, 128, 1)', paint: 'rgb(74, 222, 128)' }
     };
+    const SPELL_UNLOCK_WAVE = { fire: 2, ice: 3, heal: 4 };
     const SPELL_DAB_RADIUS = 36;
     const SPELL_MAX_DABS = 260;
     const SPELL_TICK = 0.2;
@@ -4188,6 +4504,10 @@
     }
 
     function selectSpell(key) {
+      if (state.wave < SPELL_UNLOCK_WAVE[key]) {
+        showNotification(`🔒 ${SPELLS[key].label} : DÉBLOQUÉ À LA VAGUE ${SPELL_UNLOCK_WAVE[key]}.`);
+        return;
+      }
       state.activeSpell = (state.activeSpell === key) ? null : key;
       updateSpellButtons();
     }
@@ -4196,7 +4516,7 @@
       document.querySelectorAll('.spell-btn[data-spell]').forEach((btn) => {
         const key = btn.getAttribute('data-spell');
         btn.classList.toggle('active', state.activeSpell === key);
-        btn.classList.toggle('empty', state.ink < SPELLS[key].cost);
+        btn.classList.toggle('empty', state.ink < SPELLS[key].cost || state.wave < SPELL_UNLOCK_WAVE[key]);
       });
     }
 
@@ -4214,6 +4534,7 @@
       const r = spellDabRadius();
       if (spellDabs.length >= SPELL_MAX_DABS) spellDabs.shift();
       spellDabs.push({ x, y, r, key, life: spell.life, maxLife: spell.life, seed: Math.random() * 6.28 });
+      netEmit('d', Math.round(x), Math.round(y), Math.round(r), key);
       paintBlob(x, y, r * 0.42, spell.paint, 0.34);
       return true;
     }
@@ -4338,6 +4659,24 @@
       document.getElementById('pauseIcon').textContent = paused ? '▶' : '⏸';
       document.getElementById('pauseLabel').textContent = paused ? 'Reprise' : 'Pause';
       document.getElementById('pauseBtn').classList.toggle('active', paused);
+    }
+
+    const ARMY_MILESTONES = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+    let lastArmyMilestone = 0;
+
+    function announceBattleStart() {
+      const reached = ARMY_MILESTONES.filter((m) => playerCount >= m && m > lastArmyMilestone).pop();
+      if (reached) {
+        lastArmyMilestone = reached;
+        showNotification(`🏆 VOTRE ARMÉE DÉPASSE ${reached} UNITÉS !`, 'victory');
+        addShake(Math.min(14, 3 + reached / 150));
+        return;
+      }
+      const newSpell = Object.keys(SPELL_UNLOCK_WAVE).find((key) => SPELL_UNLOCK_WAVE[key] === state.wave);
+      if (newSpell) {
+        const action = isTouchDevice ? 'TRACEZ-LE AU DOIGT' : 'TRACEZ-LE AU CLIC GAUCHE';
+        showNotification(`🎨 NOUVEAU SORT : ${SPELLS[newSpell].label} ! CHOISISSEZ-LE, PUIS ${action}.`);
+      }
     }
 
     function setBattleUI(inBattle) {
@@ -4538,6 +4877,7 @@
       for (let i = 0; i < MAX_ENTITIES; i++) {
         if (active[i] === 0) continue;
         const s = shape_type[i];
+        if (s === TYPE_TITAN) continue;
         const count = shapeCounts[s];
         const dest = count * INSTANCE_FLOATS;
         shapeCounts[s]++;
@@ -4614,7 +4954,7 @@
       fallbackCtx.clearRect(0, 0, viewW, viewH);
       applyWorldTransform(fallbackCtx);
       for (let i = 0; i < MAX_ENTITIES; i++) {
-        if (active[i] === 0) continue;
+        if (active[i] === 0 || shape_type[i] === TYPE_TITAN) continue;
         const isPlayer = (team[i] === 0);
         if (hit_flash[i] > 0) {
           hit_flash[i] -= rawDt;
@@ -4726,10 +5066,11 @@
           aoeRings.splice(i, 1);
           continue;
         }
-        const progress = 1.0 - (ring.life / 0.28);
+        const ringLife = ring.maxLife || 0.28;
+        const progress = 1.0 - (ring.life / ringLife);
         overlayCtx.save();
         overlayCtx.strokeStyle = ring.color;
-        overlayCtx.globalAlpha = ring.life / 0.28;
+        overlayCtx.globalAlpha = ring.life / ringLife;
         overlayCtx.lineWidth = 3 / zoom;
         overlayCtx.beginPath();
         overlayCtx.arc(ring.x, ring.y, ring.maxR * progress, 0, Math.PI * 2);
@@ -4738,6 +5079,10 @@
       }
 
       renderSpellDabs(zoom);
+
+      if (titan.idx >= 0 && active[titan.idx] === 1) {
+        renderTitan(overlayCtx, zoom);
+      }
 
       // De loin, les barres de vie individuelles sont illisibles : seuls les Boss gardent la leur
       const showUnitHpBars = zoom >= HP_BARS_MIN_ZOOM;
@@ -4748,6 +5093,7 @@
         const mHp = max_hp[i];
         const uType = shape_type[i];
         const isBoss = (uType === TYPE_BOSS);
+        if (uType === TYPE_TITAN) continue;
         if (!isBoss && !showUnitHpBars) continue;
 
         if (curHp < mHp * 0.98 || isBoss || uType === TYPE_TANK) {
@@ -4764,7 +5110,7 @@
         }
       }
 
-      if (!state.inBattle && !panDrag && mousePos.x > 0 && isMouseInFreeArea()) {
+      if (!state.inBattle && !panDrag && mousePos.x > 0 && isMouseInFreeArea() && net.role !== 'guest') {
         const worldX = screenToWorldX(mousePos.x);
         const worldY = screenToWorldY(mousePos.y);
         // Hors de la zone de déploiement, le clic gauche déplace la vue : le pinceau n'a pas à s'afficher
@@ -4815,7 +5161,7 @@
     function saveCurrentPlayerFormation() {
       savedFormation = [];
       for (let i = 0; i < MAX_ENTITIES; i++) {
-        if (active[i] === 1 && team[i] === 0) {
+        if (active[i] === 1 && team[i] === 0 && shape_type[i] !== TYPE_TITAN) {
           savedFormation.push({
             x: pos_x[i],
             y: pos_y[i],
@@ -4854,7 +5200,7 @@
       if (outcome === 'victory') {
         const survivalRatio = stats.startArmy > 0 ? survivors / stats.startArmy : 0;
         stars = survivalRatio >= 0.6 ? 3 : (survivalRatio >= 0.3 ? 2 : 1);
-        bonusGold = Math.round((48 + state.wave * 22) * state.mods.goldMult * diff.goldMult);
+        bonusGold = Math.max(1, Math.round(waveBaseBudget(state.wave) * VICTORY_BONUS_RATE / (1 + state.wave / 15) * state.mods.goldMult * diff.goldMult));
         starGold = Math.round(bonusGold * (stars === 3 ? 0.2 : (stars === 2 ? 0.1 : 0)));
         if (state.mods.interestRate > 0) {
           interestGold = Math.min(state.mods.interestCap, Math.round(state.gold * state.mods.interestRate));
@@ -4864,7 +5210,7 @@
         playSfx('victory');
         addShake(6);
       } else if (outcome === 'defeat') {
-        bonusGold = Math.round((25 + state.wave * 10) * state.mods.goldMult * diff.goldMult);
+        bonusGold = Math.max(2, Math.round(waveBaseBudget(state.wave) * DEFEAT_BONUS_RATE * state.mods.goldMult * diff.goldMult));
         state.gold += bonusGold;
         playSfx('gold');
       } else {
@@ -4882,13 +5228,16 @@
       setBattleUI(false);
       recalculateSkillModifiers();
 
+      const titanKills = titan.kills;
       clearAllEntities();
 
       for (const unit of savedFormation) {
         spawnUnit(unit.x, unit.y, 0, unit.type);
       }
+      if (state.duo) titan.souls += outcome === 'victory' ? 4 + completedWave * 3 : (outcome === 'defeat' ? 2 + completedWave : 0);
 
       generateEnemyWave(state.wave);
+      spawnTitan();
       clearAndRebuildSpatialGrid();
       updateSkillNotificationDot();
       updatePrognosisUI();
@@ -4907,7 +5256,7 @@
           outcome, wave: completedWave, stars, survivors, duration,
           kills: stats.kills, lost: stats.lost, inkUsed: stats.inkUsed,
           bonusGold, starGold, interestGold, kind: outcome,
-          terrain: battleTerrainInfo, mapName: battleMapName
+          terrain: battleTerrainInfo, mapName: battleMapName, titanKills
         });
       }
       saveGame();
@@ -5026,7 +5375,9 @@
     }
 
     function showTableau(info) {
-      const title = nameTableau(info);
+      const title = info.title || nameTableau(info);
+      info.title = title;
+      netSendTableau(info);
       const image = composeTableau(info, title);
       currentTableau = { canvas: image, title };
 
@@ -5047,6 +5398,7 @@
         ['Durée', formatDuration(info.duration)],
         ['Prime de bataille', `+${info.bonusGold} 🪙`]
       ];
+      if (state.duo) rows.push(['Tués par le Titan', info.titanKills]);
       if (info.starGold > 0) rows.push(['Bonus étoiles', `+${info.starGold} 🪙`]);
       if (info.interestGold > 0) rows.push(['Intérêts', `+${info.interestGold} 🪙`]);
       const statsEl = document.getElementById('tableauStats');
@@ -5065,8 +5417,10 @@
       }
 
       document.getElementById('tableauContinueBtn').textContent = info.outcome === 'victory'
-        ? `🎨 PRÉPARER LA VAGUE ${state.wave}`
-        : `🎨 RETENTER LA VAGUE ${state.wave}`;
+        ? `🎨 PRÉPARER LA VAGUE ${info.wave + 1}`
+        : `🎨 RETENTER LA VAGUE ${info.wave}`;
+      document.getElementById('tableauUpgradeBtn').style.display = net.role === 'guest' ? 'none' : '';
+      document.getElementById('tableauTitanBtn').style.display = state.duo ? '' : 'none';
 
       addToGallery(image, title, info);
       const best = Number(storage.get(STORAGE_RECORD)) || 0;
@@ -5161,7 +5515,7 @@
 
     function saveGame() {
       saveDirty = false;
-      if (!gameStarted) return;
+      if (!gameStarted || net.role === 'guest') return;
       const skills = {};
       SKILL_TREE_NODES.forEach((n) => { skills[n.id] = n.level; });
       storage.set(STORAGE_SAVE, JSON.stringify({
@@ -5172,6 +5526,10 @@
         spentTreeGold: state.spentTreeGold,
         arenaScale: arena.scale,
         footprint: lastEnemyFootprint,
+        peakArmy: peakArmySize,
+        milestone: lastArmyMilestone,
+        duo: state.duo,
+        titan: state.duo ? { souls: titan.souls, levels: titan.levels } : null,
         skills,
         formation: savedFormation.map((u) => [Math.round(u.x), Math.round(u.y), u.type])
       }));
@@ -5199,6 +5557,7 @@
       playerCount = 0;
       enemyCount = 0;
       aoeRings.length = 0;
+      titan.idx = -1;
     }
 
     function updateLaunchButton() {
@@ -5214,14 +5573,22 @@
       state.wave = data.wave;
       state.difficulty = data.difficulty in DIFFICULTY_PRESETS ? data.difficulty : 'normal';
       state.spentTreeGold = data.spentTreeGold || 0;
-      arena.scale = Math.min(ARENA_MAX_SCALE, Math.max(1, data.arenaScale || 1));
+      arena.scale = Math.min(ARENA_MAX_SCALE, Math.max(ARENA_MIN_SCALE, data.arenaScale || ARENA_MIN_SCALE));
       lastEnemyFootprint = data.footprint || 0;
+      peakArmySize = data.peakArmy || 0;
+      lastArmyMilestone = data.milestone || 0;
       document.getElementById('difficultySelect').value = state.difficulty;
       SKILL_TREE_NODES.forEach((n) => { n.level = Math.min(n.maxLevel, (data.skills && data.skills[n.id]) || 0); });
       recalculateSkillModifiers();
       savedFormation = (data.formation || []).map((u) => ({ x: u[0], y: u[1], type: u[2] }));
       for (const unit of savedFormation) spawnUnit(unit.x, unit.y, 0, unit.type);
+      setDuoMode(!!data.duo);
+      if (data.titan) {
+        titan.souls = data.titan.souls || 0;
+        titan.levels = data.titan.levels || {};
+      }
       generateEnemyWave(state.wave);
+      spawnTitan();
       clearAndRebuildSpatialGrid();
       updatePrognosisUI();
       updateSkillNotificationDot();
@@ -5232,22 +5599,28 @@
       snapCameraToTarget();
     }
 
-    function startNewGame() {
+    function startNewGame(duo = false) {
+      setDuoMode(duo);
+      resetTitanProgress();
       clearAllEntities();
       state.inBattle = false;
-      state.gold = 180;
+      state.gold = START_GOLD;
       state.wave = 1;
       state.spentTreeGold = 0;
-      arena.scale = 1;
+      arena.scale = ARENA_MIN_SCALE;
       lastEnemyFootprint = 0;
+      peakArmySize = 0;
+      lastArmyMilestone = 0;
       SKILL_TREE_NODES.forEach((n) => { n.level = 0; });
       state.selectedSkillId = 'root_cmd';
       savedFormation = [];
       selectUnit(TYPE_SWARMER);
       recalculateSkillModifiers();
       generateEnemyWave(1);
+      spawnTitan();
       clearAndRebuildSpatialGrid();
-      buildAutoFormation();
+      updatePrognosisUI();
+      updateSkillNotificationDot();
       updateLaunchButton();
       setBattleUI(false);
       resetPaintLayer();
@@ -5283,7 +5656,7 @@
     function openTitle() {
       newGameArmed = false;
       document.getElementById('titleNewBtn').textContent = '🎨 NOUVELLE PARTIE';
-      if (state.inBattle && pendingWaveOutcome === null) setPaused(true);
+      if (state.inBattle && pendingWaveOutcome === null && net.role !== 'guest') setPaused(true);
       const continueBtn = document.getElementById('titleContinueBtn');
       const save = readSave();
       if (gameStarted) {
@@ -5330,8 +5703,11 @@
         ['🗺️ Lisez le terrain', "Chaque vague a sa carte. Les murs bloquent tout sauf les orbes des Mages. Les trous bloquent les unités, mais les tirs passent au-dessus. Le marais ralentit. Les pointillés rouges montrent la route probable de l'ennemi : c'est là qu'il faut l'attendre."],
         ['🔥 Peignez vos sorts', spellHelp],
         ['🖼️ Collectionnez', "Chaque bataille laisse un tableau unique, nommé et signé. Il rejoint votre galerie et vous pouvez l'enregistrer. Finissez avec beaucoup de survivants pour gagner des étoiles et de l'or."],
-        ['🌳 Progressez', "Dépensez votre or dans l'arbre de compétences pour débloquer Assassins, Mages, et davantage d'encre. Votre armée et le terrain grandissent à chaque vague."],
-        ['🧭 Déplacez la vue', viewHelp]
+        ['🌳 De 5 unités à des milliers', "Vous commencez avec de quoi recruter 5 Fantassins, sur un tout petit terrain. Dépensez votre or dans l'arbre de compétences, débloquez Assassins, Mages et nouveaux sorts : votre armée, le terrain et la vue grandissent à chaque vague."],
+        ['🧭 Déplacez la vue', viewHelp],
+        ['🤝 Le mode Duo', isTouchDevice
+          ? "Un joueur est le Général, l'autre le Titan : une seule unité immense, guidée au joystick. Il enjambe le terrain et dépense ses Âmes pour faire évoluer son corps, et grandit à chaque compétence."
+          : "Un joueur est le Général, l'autre le Titan : une seule unité immense, guidée avec ZQSD/WASD (ou la souris en ligne) et les capacités J, K, L, I. Il enjambe le terrain et dépense ses Âmes (touche T) pour faire évoluer son corps, et grandit à chaque compétence."]
       ];
       const grid = document.getElementById('helpGrid');
       grid.innerHTML = '';
@@ -5353,6 +5729,10 @@
       tableauModal.classList.remove('open');
       renderSkillTreeModal();
       upgradeModal.classList.add('open');
+    });
+    document.getElementById('tableauTitanBtn').addEventListener('click', () => {
+      tableauModal.classList.remove('open');
+      openTitanTree();
     });
     document.getElementById('tableauSaveBtn').addEventListener('click', saveCurrentTableau);
     document.getElementById('tableauGalleryBtn').addEventListener('click', openGallery);
@@ -5380,8 +5760,13 @@
         return;
       }
       if (state.inBattle) setPaused(false);
-      startNewGame();
+      netClose();
+      document.body.classList.remove('role-guest');
+      startNewGame(false);
       hideTitle();
+      showNotification(isTouchDevice
+        ? "🖌️ VOUS AVEZ DE QUOI RECRUTER 5 FANTASSINS : PEIGNEZ-LES À GAUCHE DE LA LIGNE !"
+        : "🖌️ VOUS AVEZ DE QUOI RECRUTER 5 FANTASSINS : PEIGNEZ-LES AU CLIC GAUCHE, À GAUCHE DE LA LIGNE !");
       if (Number(storage.get(STORAGE_RECORD) || 0) === 0 && galleryEntries.length === 0) {
         helpModal.classList.add('open');
       }
@@ -5397,7 +5782,7 @@
       if (state.inBattle) return;
 
       for (let i = 0; i < MAX_ENTITIES; i++) {
-        if (active[i] === 1 && team[i] === 0) {
+        if (active[i] === 1 && team[i] === 0 && shape_type[i] !== TYPE_TITAN) {
           destroyEntity(i, true);
         }
       }
@@ -5534,7 +5919,7 @@
         const radSq = eraseR * eraseR;
         let removed = false;
         for (let i = 0; i < MAX_ENTITIES; i++) {
-          if (active[i] === 1 && team[i] === 0) {
+          if (active[i] === 1 && team[i] === 0 && shape_type[i] !== TYPE_TITAN) {
             const dSq = (pos_x[i] - brushX) ** 2 + (pos_y[i] - brushY) ** 2;
             if (dSq <= radSq) {
               destroyEntity(i, true);
@@ -5900,10 +6285,1556 @@
       if (enemyCount === 0) {
         pendingWaveOutcome = 'victory';
         endWaveTransitionTimer = 1.0;
-      } else if (playerCount === 0) {
+      } else if (playerCount === 0 && titan.idx < 0) {
         pendingWaveOutcome = 'defeat';
         endWaveTransitionTimer = 1.0;
       }
+    }
+
+    // =========================================================================
+    // LE TITAN : une seule unité, un corps qui évolue, un arbre entièrement à lui
+    // Chaque compétence fait grandir le Titan et ajoute une partie visible à son corps.
+    // =========================================================================
+    const DUO_BUDGET_MULT = 1.5;
+    const TITAN_SOULS_PER_KILL = 0.05;
+    const TITAN_KILL_SOULS_BASE = 5;
+    const TITAN_BRANCHES = [
+      { key: 'coeur', name: 'Le Cœur', icon: '❤️', color: '#fb7185' },
+      { key: 'poing', name: 'Les Poings', icon: '👊', color: '#fbbf24' },
+      { key: 'oeil', name: 'Le Regard', icon: '👁️', color: '#38bdf8' },
+      { key: 'jambe', name: 'Les Jambes', icon: '🦶', color: '#34d399' },
+      { key: 'couronne', name: 'La Couronne', icon: '👑', color: '#c084fc' }
+    ];
+    // ring : distance au centre ; offset : décalage latéral dans la branche
+    const TITAN_TREE = [
+      { id: 'eveil', branch: null, ring: 0, offset: 0, icon: '✨', name: 'Éveil', desc: "Le Titan ouvre les yeux. Ouvre les cinq voies de son évolution.", cost: 3, scale: 1, max: 1, parent: null },
+
+      { id: 'coeur_1', branch: 'coeur', ring: 1, offset: 0, icon: '🪨', name: 'Cœur de Pierre', desc: "+30% de PV maximum par niveau. Un cœur incandescent s'allume dans son torse.", cost: 4, scale: 1.5, max: 5, parent: 'eveil' },
+      { id: 'coeur_2', branch: 'coeur', ring: 2, offset: -1, icon: '🩸', name: "Sang d'Encre", desc: "Régénère 1,5% de ses PV par seconde par niveau.", cost: 10, scale: 1.6, max: 3, parent: 'coeur_1' },
+      { id: 'coeur_3', branch: 'coeur', ring: 2, offset: 1, icon: '🐢', name: 'Carapace', desc: "Réduit tous les dégâts subis de 12% par niveau. Des plaques couvrent son corps.", cost: 10, scale: 1.6, max: 3, parent: 'coeur_1' },
+      { id: 'coeur_4', branch: 'coeur', ring: 3, offset: 0, icon: '🔥', name: 'Seconde Vie', desc: "Une fois par bataille, le Titan se relève à 50% de ses PV quand il tombe.", cost: 40, scale: 1, max: 1, parent: 'coeur_3' },
+
+      { id: 'poing_1', branch: 'poing', ring: 1, offset: 0, icon: '🥊', name: "Poings d'Airain", desc: "+30% de dégâts par niveau. Ses bras s'épaississent.", cost: 4, scale: 1.5, max: 5, parent: 'eveil' },
+      { id: 'poing_2', branch: 'poing', ring: 2, offset: -1, icon: '🌀', name: 'Balayage', desc: "Chaque coup touche 3 ennemis de plus, avec 25% d'allonge en plus par niveau.", cost: 8, scale: 1.6, max: 3, parent: 'poing_1' },
+      { id: 'poing_3', branch: 'poing', ring: 2, offset: 1, icon: '💥', name: 'Onde de Choc', desc: "Capacité (J) : frappe le sol, blesse et repousse tout ce qui l'entoure. Plus large à chaque niveau.", cost: 12, scale: 1.6, max: 3, parent: 'poing_1' },
+      { id: 'poing_4', branch: 'poing', ring: 3, offset: 1, icon: '🌋', name: 'Séisme', desc: "L'Onde de Choc ralentit les survivants et se recharge 30% plus vite.", cost: 45, scale: 1, max: 1, parent: 'poing_3' },
+
+      { id: 'oeil_1', branch: 'oeil', ring: 1, offset: 0, icon: '🔆', name: 'Regard Ardent', desc: "Capacité (K) : un rayon brûle tout sur sa ligne. Plus puissant à chaque niveau.", cost: 6, scale: 1.6, max: 3, parent: 'eveil' },
+      { id: 'oeil_2', branch: 'oeil', ring: 2, offset: -1, icon: '🎯', name: 'Œil Perçant', desc: "Le rayon porte 25% plus loin et brûle 25% plus fort par niveau.", cost: 12, scale: 1.6, max: 3, parent: 'oeil_1' },
+      { id: 'oeil_3', branch: 'oeil', ring: 2, offset: 1, icon: '🔱', name: 'Prisme', desc: "Le rayon se divise : +2 faisceaux par niveau. Le Titan gagne de nouveaux yeux.", cost: 20, scale: 1.7, max: 2, parent: 'oeil_1' },
+      { id: 'oeil_4', branch: 'oeil', ring: 3, offset: 0, icon: '🗿', name: 'Regard Pétrifiant', desc: "Tout ce que le rayon touche est fortement ralenti.", cost: 45, scale: 1, max: 1, parent: 'oeil_2' },
+
+      { id: 'jambe_1', branch: 'jambe', ring: 1, offset: 0, icon: '👣', name: 'Foulée', desc: "+15% de vitesse par niveau.", cost: 4, scale: 1.5, max: 5, parent: 'eveil' },
+      { id: 'jambe_2', branch: 'jambe', ring: 2, offset: -1, icon: '🐘', name: 'Piétinement', desc: "Le Titan écrase ce qu'il foule : dégâts continus sous ses pieds, plus forts à chaque niveau.", cost: 9, scale: 1.6, max: 3, parent: 'jambe_1' },
+      { id: 'jambe_3', branch: 'jambe', ring: 2, offset: 1, icon: '🐂', name: 'Charge', desc: "Capacité (L) : fonce droit devant et renverse tout sur son passage.", cost: 12, scale: 1.6, max: 3, parent: 'jambe_1' },
+      { id: 'jambe_4', branch: 'jambe', ring: 3, offset: 0, icon: '🗻', name: 'Colosse', desc: "La taille du Titan augmente de 30% par niveau. Il devient une montagne.", cost: 50, scale: 2, max: 2, parent: 'jambe_2' },
+
+      { id: 'couronne_1', branch: 'couronne', ring: 1, offset: 0, icon: '🎖️', name: 'Aura de Guerre', desc: "Les alliés dans son aura infligent +12% de dégâts par niveau. Une couronne pousse sur sa tête.", cost: 5, scale: 1.5, max: 4, parent: 'eveil' },
+      { id: 'couronne_2', branch: 'couronne', ring: 2, offset: -1, icon: '💚', name: 'Bénédiction', desc: "L'aura soigne les alliés de 1,5% de leurs PV par seconde par niveau.", cost: 10, scale: 1.6, max: 3, parent: 'couronne_1' },
+      { id: 'couronne_3', branch: 'couronne', ring: 2, offset: 1, icon: '😱', name: 'Terreur', desc: "Les ennemis dans l'aura sont ralentis.", cost: 16, scale: 1.8, max: 2, parent: 'couronne_1' },
+      { id: 'couronne_4', branch: 'couronne', ring: 3, offset: 1, icon: '💰', name: 'Tribut', desc: "Chaque ennemi tué par le Titan rapporte de l'or et de l'encre au Général.", cost: 25, scale: 1.7, max: 3, parent: 'couronne_3' },
+      { id: 'couronne_5', branch: 'couronne', ring: 3, offset: -1, icon: '📯', name: 'Cri de Ralliement', desc: "Capacité (I) : soigne de 35% toute l'armée autour du Titan.", cost: 30, scale: 1, max: 1, parent: 'couronne_2' }
+    ];
+    const titanNodeMap = {};
+    TITAN_TREE.forEach((n) => { titanNodeMap[n.id] = n; });
+
+    const TITAN_ABILITIES = {
+      slam: { key: 'J', node: 'poing_3', label: 'Onde', icon: '💥', cooldown: 9 },
+      beam: { key: 'K', node: 'oeil_1', label: 'Rayon', icon: '🔆', cooldown: 11 },
+      charge: { key: 'L', node: 'jambe_3', label: 'Charge', icon: '🐂', cooldown: 8 },
+      rally: { key: 'I', node: 'couronne_5', label: 'Cri', icon: '📯', cooldown: 20 }
+    };
+
+    const titan = {
+      idx: -1, souls: 0, soulsFraction: 0, levels: {}, kills: 0,
+      inputX: 0, inputY: 0, moveTargetX: null, moveTargetY: null,
+      keys: new Set(), stickX: 0, stickY: 0,
+      facing: 0, homeX: 0, homeY: 0,
+      strikeTimer: 0, swing: 0, tickTimer: 0, trampleTimer: 0,
+      cooldowns: { slam: 0, beam: 0, charge: 0, rally: 0 },
+      beamTime: 0, beamTickTimer: 0, beamAngle: 0,
+      chargeTime: 0, chargeX: 1, chargeY: 0,
+      usedSecondLife: false, fell: false,
+      damage: 30, reach: 40, targets: 3, armor: 0, regen: 0, auraRadius: 0, auraDamage: 0,
+      stats: { hp: 0, maxHp: 1, radius: 26 }, selectedNode: 'eveil'
+    };
+    let titanStrikeActive = false;
+
+    function titanLevel(id) {
+      return titan.levels[id] || 0;
+    }
+
+    function titanNodeCost(node) {
+      return Math.round(node.cost * Math.pow(node.scale, titanLevel(node.id)));
+    }
+
+    function isTitanNodeUnlocked(node) {
+      return !node.parent || titanLevel(node.parent) >= 1;
+    }
+
+    function resetTitanProgress() {
+      titan.souls = 3;
+      titan.soulsFraction = 0;
+      titan.levels = {};
+      titan.selectedNode = 'eveil';
+      titan.homeX = 0;
+    }
+
+    function computeTitanStats() {
+      const w = Math.max(1, state.wave);
+      const allLevels = TITAN_TREE.reduce((sum, n) => sum + titanLevel(n.id), 0);
+      const colossus = 1 + titanLevel('jambe_4') * 0.3;
+      const size = (UNIT_SPECS[TYPE_TITAN].radius + allLevels * 2.4) * colossus;
+      const reachBonus = 1 + titanLevel('poing_2') * 0.25;
+      return {
+        maxHp: 300 * (1 + (w - 1) * 0.22) * (1 + titanLevel('coeur_1') * 0.3),
+        damage: 22 * (1 + (w - 1) * 0.16) * (1 + titanLevel('poing_1') * 0.3),
+        speed: UNIT_SPECS[TYPE_TITAN].speed * Math.pow(1.15, titanLevel('jambe_1')),
+        radius: size,
+        reach: (size * 0.5 + 24) * reachBonus,
+        targets: 2 + titanLevel('poing_2') * 3,
+        armor: Math.min(0.6, titanLevel('coeur_3') * 0.12),
+        regen: titanLevel('coeur_2') * 0.015,
+        auraRadius: titanLevel('couronne_1') > 0 ? size * 2.2 + 120 : 0,
+        auraDamage: titanLevel('couronne_1') * 0.12
+      };
+    }
+
+    function applyTitanStats(idx) {
+      const s = computeTitanStats();
+      const ratio = max_hp[idx] > 0 ? Math.min(1, hp[idx] / max_hp[idx]) : 1;
+      max_hp[idx] = s.maxHp;
+      hp[idx] = state.inBattle ? s.maxHp * ratio : s.maxHp;
+      damage[idx] = s.damage;
+      attack_range[idx] = s.reach;
+      max_cooldown[idx] = UNIT_SPECS[TYPE_TITAN].rate;
+      speed[idx] = s.speed;
+      radius[idx] = s.radius;
+      mass[idx] = UNIT_SPECS[TYPE_TITAN].mass;
+      titan.reach = s.reach;
+      titan.targets = s.targets;
+      titan.armor = s.armor;
+      titan.regen = s.regen;
+      titan.auraRadius = s.auraRadius;
+      titan.auraDamage = s.auraDamage;
+    }
+
+    function spawnTitan() {
+      if (!state.duo || net.role === 'guest') return;
+      if (titan.idx >= 0 && active[titan.idx] === 1) {
+        applyTitanStats(titan.idx);
+        return;
+      }
+      if (!titan.homeX) {
+        titan.homeX = DEPLOY_LINE_X - 70;
+        titan.homeY = WORLD_CY;
+      }
+      const x = Math.max(arena.left + 20, titan.homeX);
+      const y = Math.max(arena.top + 20, Math.min(arena.bottom - 20, titan.homeY));
+      const idx = spawnUnit(x, y, 0, TYPE_TITAN);
+      if (idx !== -1) {
+        vel_x[idx] = 1;
+        applyTitanStats(idx);
+        hp[idx] = max_hp[idx];
+      }
+    }
+
+    function prepareTitanForBattle() {
+      titan.kills = 0;
+      titan.killSouls = 0;
+      titan.usedSecondLife = false;
+      titan.fell = false;
+      titan.beamTime = 0;
+      titan.chargeTime = 0;
+      for (const key of Object.keys(titan.cooldowns)) titan.cooldowns[key] = 0;
+    }
+
+    function handleTitanFall(idx) {
+      if (titanLevel('coeur_4') > 0 && !titan.usedSecondLife) {
+        titan.usedSecondLife = true;
+        hp[idx] = max_hp[idx] * 0.5;
+        addRing(pos_x[idx], pos_y[idx], radius[idx] * 3, '#fb7185', 0.7);
+        addShake(10);
+        showNotification("🔥 SECONDE VIE : LE TITAN SE RELÈVE !", 'victory');
+        return;
+      }
+      paintSplat(pos_x[idx], pos_y[idx], 0, TYPE_TITAN);
+      spawnShards(pos_x[idx], pos_y[idx], 0, TYPE_TITAN);
+      addShake(20);
+      active[idx] = 0;
+      activeEntityCount--;
+      titan.idx = -1;
+      titan.fell = true;
+      titan.beamTime = 0;
+      titan.chargeTime = 0;
+      showNotification("💀 LE TITAN EST TOMBÉ ! IL REVIENDRA À LA PROCHAINE VAGUE.", 'defeat');
+    }
+
+    function creditTitanKill(uType) {
+      if (!state.duo || !titanStrikeActive) return;
+      const cap = TITAN_KILL_SOULS_BASE + state.wave;
+      if (titan.killSouls < cap) {
+        titan.soulsFraction += uType === TYPE_BOSS ? 2 : TITAN_SOULS_PER_KILL;
+        const whole = Math.floor(titan.soulsFraction);
+        if (whole > 0) {
+          const gained = Math.min(whole, cap - titan.killSouls);
+          titan.souls += gained;
+          titan.killSouls += gained;
+          titan.soulsFraction -= whole;
+        }
+      }
+      {
+        titan.kills++;
+        const tribute = titanLevel('couronne_4');
+        if (tribute > 0) {
+          state.gold += Math.round(UNIT_SPECS[uType].cost * 0.2 * tribute);
+          state.ink = Math.min(state.maxInk, state.ink + 0.3 * tribute);
+        }
+      }
+    }
+
+    function titanAuraMultiplier(i, myTeam) {
+      if (myTeam !== 0 || titan.idx < 0 || titan.auraDamage <= 0) return 1;
+      const dSq = (pos_x[i] - pos_x[titan.idx]) ** 2 + (pos_y[i] - pos_y[titan.idx]) ** 2;
+      return dSq <= titan.auraRadius * titan.auraRadius ? 1 + titan.auraDamage : 1;
+    }
+
+    // Parcourt toutes les unités d'un disque (la grille n'a pas de limite de portée ici)
+    function forEachUnitInRadius(cx, cy, r, callback) {
+      const minCellX = Math.max(0, Math.floor((cx - r) / SPATIAL_CELL_SIZE));
+      const maxCellX = Math.min(gridCols - 1, Math.floor((cx + r) / SPATIAL_CELL_SIZE));
+      const minCellY = Math.max(0, Math.floor((cy - r) / SPATIAL_CELL_SIZE));
+      const maxCellY = Math.min(gridRows - 1, Math.floor((cy + r) / SPATIAL_CELL_SIZE));
+      const rSq = r * r;
+      for (let y = minCellY; y <= maxCellY; y++) {
+        for (let x = minCellX; x <= maxCellX; x++) {
+          let curr = gridHead[y * gridCols + x];
+          while (curr !== -1) {
+            const next = entityNext[curr];
+            if (active[curr] === 1 && curr !== titan.idx) {
+              const dSq = (pos_x[curr] - cx) ** 2 + (pos_y[curr] - cy) ** 2;
+              if (dSq <= rSq && callback(curr, dSq) === false) return;
+            }
+            curr = next;
+          }
+        }
+      }
+    }
+
+    function titanHit(victim, amount) {
+      titanStrikeActive = true;
+      applyDamageToUnit(-1, victim, amount, false);
+      titanStrikeActive = false;
+    }
+
+    function nearestEnemyToTitan() {
+      if (titan.idx < 0) return -1;
+      let best = -1;
+      let bestDist = Infinity;
+      const x = pos_x[titan.idx];
+      const y = pos_y[titan.idx];
+      for (let i = 0; i < MAX_ENTITIES; i++) {
+        if (active[i] === 0 || team[i] !== 1) continue;
+        const d = (pos_x[i] - x) ** 2 + (pos_y[i] - y) ** 2;
+        if (d < bestDist) {
+          bestDist = d;
+          best = i;
+        }
+      }
+      return best;
+    }
+
+    function readTitanInput() {
+      let dx = 0;
+      let dy = 0;
+      if (net.role !== 'host') {
+        const keys = titan.keys;
+        dx = (keys.has('right') ? 1 : 0) - (keys.has('left') ? 1 : 0) + titan.stickX;
+        dy = (keys.has('down') ? 1 : 0) - (keys.has('up') ? 1 : 0) + titan.stickY;
+        if (dx === 0 && dy === 0 && titan.moveTargetX !== null && titan.idx >= 0) {
+          dx = titan.moveTargetX - pos_x[titan.idx];
+          dy = titan.moveTargetY - pos_y[titan.idx];
+          if (Math.hypot(dx, dy) < 8) {
+            dx = 0;
+            dy = 0;
+          }
+        }
+      }
+      const len = Math.hypot(dx, dy);
+      if (len > 1) {
+        dx /= len;
+        dy /= len;
+      }
+      return [dx, dy];
+    }
+
+    function updateTitanControls() {
+      if (!state.duo) return;
+      if (net.role === 'host') return;  // L'hôte reçoit les commandes du Titan par le réseau
+      const [dx, dy] = readTitanInput();
+      titan.inputX = dx;
+      titan.inputY = dy;
+    }
+
+    function moveTitanInPreparation(rawDt) {
+      if (titan.idx < 0) return;
+      const i = titan.idx;
+      const spd = speed[i] * rawDt;
+      if (titan.inputX === 0 && titan.inputY === 0) return;
+      const r = radius[i] * 0.5;
+      pos_x[i] = Math.max(arena.left + r, Math.min(DEPLOY_LINE_X - 10, pos_x[i] + titan.inputX * spd));
+      pos_y[i] = Math.max(arena.top + r, Math.min(arena.bottom - r, pos_y[i] + titan.inputY * spd));
+      vel_x[i] = titan.inputX;
+      vel_y[i] = titan.inputY;
+      titan.facing = Math.atan2(titan.inputY, titan.inputX);
+      titan.homeX = pos_x[i];
+      titan.homeY = pos_y[i];
+    }
+
+    function titanSystem(dt) {
+      if (titan.idx < 0) return;
+      const i = titan.idx;
+      for (const key of Object.keys(titan.cooldowns)) {
+        if (titan.cooldowns[key] > 0) titan.cooldowns[key] = Math.max(0, titan.cooldowns[key] - dt);
+      }
+      if (titan.regen > 0) hp[i] = Math.min(max_hp[i], hp[i] + max_hp[i] * titan.regen * dt);
+      if (hit_flash[i] > 0) hit_flash[i] -= dt;
+      const r = radius[i];
+
+      // Déplacement : le Titan enjambe murs et trous
+      let moveX = titan.inputX;
+      let moveY = titan.inputY;
+      let spd = speed[i];
+      if (titan.chargeTime > 0) {
+        titan.chargeTime -= dt;
+        moveX = titan.chargeX;
+        moveY = titan.chargeY;
+        spd *= 5;
+      }
+      pos_x[i] = Math.max(arena.left, Math.min(arena.right, pos_x[i] + moveX * spd * dt));
+      pos_y[i] = Math.max(arena.top, Math.min(arena.bottom, pos_y[i] + moveY * spd * dt));
+      vel_x[i] = moveX * spd;
+      vel_y[i] = moveY * spd;
+      if (moveX !== 0 || moveY !== 0) titan.facing = Math.atan2(moveY, moveX);
+      const x = pos_x[i];
+      const y = pos_y[i];
+
+      // Il écarte tout ce qui se trouve sous lui
+      forEachUnitInRadius(x, y, r + 12, (u, dSq) => {
+        const d = Math.sqrt(dSq) || 1;
+        const reach = r + radius[u];
+        const overlap = reach - d;
+        if (overlap > 0) {
+          const push = Math.min(overlap, 220 * dt);
+          moveUnit(u, ((pos_x[u] - x) / d) * push, ((pos_y[u] - y) / d) * push);
+        }
+      });
+
+      // Coups automatiques
+      titan.strikeTimer -= dt;
+      titan.swing = Math.max(0, titan.swing - dt * 3.5);
+      if (titan.strikeTimer <= 0) {
+        let left = titan.targets;
+        let didHit = false;
+        forEachUnitInRadius(x, y, r + titan.reach, (u) => {
+          if (team[u] !== 1) return true;
+          titanHit(u, damage[i]);
+          didHit = true;
+          left--;
+          return left > 0;
+        });
+        if (didHit) {
+          titan.strikeTimer = max_cooldown[i];
+          titan.swing = 1;
+          playSfx('hit');
+        } else {
+          titan.strikeTimer = 0.1;
+        }
+      }
+
+      // Effets périodiques : piétinement, aura
+      titan.tickTimer -= dt;
+      if (titan.tickTimer <= 0) {
+        titan.tickTimer += 0.25;
+        const trample = titanLevel('jambe_2');
+        if (trample > 0) {
+          const trampleDamage = damage[i] * 0.35 * trample * 0.25 * 4;
+          forEachUnitInRadius(x, y, r * 1.08 + 10, (u) => {
+            if (team[u] === 1) titanHit(u, trampleDamage * 0.25);
+            return true;
+          });
+        }
+        const blessing = titanLevel('couronne_2');
+        const terror = titanLevel('couronne_3');
+        if (titan.auraRadius > 0 && (blessing > 0 || terror > 0)) {
+          forEachUnitInRadius(x, y, titan.auraRadius, (u) => {
+            if (team[u] === 0) {
+              if (blessing > 0) hp[u] = Math.min(max_hp[u], hp[u] + max_hp[u] * 0.015 * blessing * 0.25);
+            } else if (terror > 0) {
+              slow_until[u] = simClock + 0.4;
+            }
+            return true;
+          });
+        }
+      }
+
+      // Rayon
+      if (titan.beamTime > 0) {
+        titan.beamTime -= dt;
+        titan.beamTickTimer -= dt;
+        const target = nearestEnemyToTitan();
+        if (target >= 0) {
+          const wanted = Math.atan2(pos_y[target] - y, pos_x[target] - x);
+          let delta = wanted - titan.beamAngle;
+          while (delta > Math.PI) delta -= Math.PI * 2;
+          while (delta < -Math.PI) delta += Math.PI * 2;
+          titan.beamAngle += delta * Math.min(1, dt * 3);
+        }
+        if (titan.beamTickTimer <= 0) {
+          titan.beamTickTimer = 0.1;
+          applyTitanBeam(i);
+        }
+      }
+
+      // Charge : renverse tout sur son passage
+      if (titan.chargeTime > 0) {
+        const hitDamage = damage[i] * 0.6 * (1 + titanLevel('jambe_3') * 0.5);
+        forEachUnitInRadius(x, y, r * 1.15 + 10, (u) => {
+          if (team[u] === 1) {
+            titanHit(u, hitDamage * dt * 8);
+            if (active[u] === 1) {
+              const d = Math.hypot(pos_x[u] - x, pos_y[u] - y) || 1;
+              moveUnit(u, ((pos_x[u] - x) / d) * 260 * dt, ((pos_y[u] - y) / d) * 260 * dt);
+            }
+          }
+          return true;
+        });
+      }
+    }
+
+    function titanBeamRays() {
+      const rays = 1 + titanLevel('oeil_3') * 2;
+      const angles = [];
+      for (let k = 0; k < rays; k++) angles.push(titan.beamAngle + (k - (rays - 1) / 2) * 0.28);
+      return angles;
+    }
+
+    function titanBeamLength(r) {
+      return (r * 3.4 + 280) * (1 + titanLevel('oeil_2') * 0.25);
+    }
+
+    function applyTitanBeam(i) {
+      const r = radius[i];
+      const x = pos_x[i];
+      const y = pos_y[i];
+      const length = titanBeamLength(r);
+      const width = Math.max(26, r * 0.42);
+      const tickDamage = damage[i] * 4.5 * (1 + titanLevel('oeil_1') * 0.4) * (1 + titanLevel('oeil_2') * 0.25) * 0.1;
+      const petrify = titanLevel('oeil_4') > 0;
+      const rays = titanBeamRays().map((a) => [Math.cos(a), Math.sin(a)]);
+      forEachUnitInRadius(x, y, length, (u) => {
+        if (team[u] !== 1) return true;
+        const ux = pos_x[u] - x;
+        const uy = pos_y[u] - y;
+        for (const [cx, cy] of rays) {
+          const along = ux * cx + uy * cy;
+          if (along < 0) continue;
+          const side = Math.abs(ux * cy - uy * cx);
+          if (side <= width) {
+            if (petrify) slow_until[u] = simClock + 1.2;
+            titanHit(u, tickDamage);
+            break;
+          }
+        }
+        return true;
+      });
+    }
+
+    function useTitanAbility(key) {
+      const ability = TITAN_ABILITIES[key];
+      if (!ability) return;
+      if (net.role === 'guest') {
+        netSend({ k: 'ability', id: key });
+        return;
+      }
+      if (titan.idx < 0 || !state.inBattle || state.paused) return;
+      const level = titanLevel(ability.node);
+      if (level <= 0 || titan.cooldowns[key] > 0) return;
+      const i = titan.idx;
+      const r = radius[i];
+      const x = pos_x[i];
+      const y = pos_y[i];
+
+      if (key === 'slam') {
+        const seism = titanLevel('poing_4') > 0;
+        titan.cooldowns.slam = ability.cooldown * (seism ? 0.7 : 1);
+        const blast = r * 2.2 + 70 + level * 50;
+        const blastDamage = damage[i] * 3 * (1 + level * 0.5);
+        addRing(x, y, blast, '#fbbf24', 0.5);
+        addRing(x, y, blast * 0.6, '#ffffff', 0.35);
+        addShake(10 + level * 2);
+        paintBlob(x, y, r * 0.55, 'rgb(251, 191, 36)', 0.28);
+        netEmit('b', Math.round(x), Math.round(y), Math.round(r * 0.55), 'rgb(251, 191, 36)');
+        forEachUnitInRadius(x, y, blast, (u) => {
+          if (team[u] !== 1) return true;
+          titanHit(u, blastDamage);
+          if (active[u] === 1) {
+            const d = Math.hypot(pos_x[u] - x, pos_y[u] - y) || 1;
+            moveUnit(u, ((pos_x[u] - x) / d) * 55, ((pos_y[u] - y) / d) * 55);
+            if (seism) slow_until[u] = simClock + 3;
+          }
+          return true;
+        });
+      } else if (key === 'beam') {
+        titan.cooldowns.beam = ability.cooldown;
+        titan.beamTime = 1.7;
+        titan.beamTickTimer = 0;
+        const target = nearestEnemyToTitan();
+        titan.beamAngle = target >= 0 ? Math.atan2(pos_y[target] - y, pos_x[target] - x) : titan.facing;
+        addShake(5);
+      } else if (key === 'charge') {
+        titan.cooldowns.charge = ability.cooldown;
+        titan.chargeTime = 0.55 + level * 0.1;
+        let dirX = titan.inputX;
+        let dirY = titan.inputY;
+        if (dirX === 0 && dirY === 0) {
+          const target = nearestEnemyToTitan();
+          if (target >= 0) {
+            dirX = pos_x[target] - x;
+            dirY = pos_y[target] - y;
+          } else {
+            dirX = 1;
+          }
+        }
+        const len = Math.hypot(dirX, dirY) || 1;
+        titan.chargeX = dirX / len;
+        titan.chargeY = dirY / len;
+        addShake(6);
+      } else if (key === 'rally') {
+        titan.cooldowns.rally = ability.cooldown;
+        const zone = Math.max(titan.auraRadius, r * 2) * 1.8;
+        addRing(x, y, zone, '#4ade80', 0.7);
+        forEachUnitInRadius(x, y, zone, (u) => {
+          if (team[u] === 0) hp[u] = Math.min(max_hp[u], hp[u] + max_hp[u] * 0.35);
+          return true;
+        });
+        hp[i] = Math.min(max_hp[i], hp[i] + max_hp[i] * 0.15);
+        playSfx('victory');
+      }
+    }
+
+    // ---- Dessin : le corps du Titan reflète son arbre de compétences ----
+    function drawTitanBody(ctx, x, y, r, facing, levels, time, swing, flash) {
+      const lv = (id) => levels[id] || 0;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(facing);
+
+      // Jambes : griffes à l'arrière, plus nombreuses avec la foulée
+      const legs = 2 + lv('jambe_1');
+      ctx.fillStyle = '#b45309';
+      for (let k = 0; k < legs; k++) {
+        const a = Math.PI + (k - (legs - 1) / 2) * (1.5 / Math.max(1, legs));
+        const stride = Math.sin(time * 7 + k * 1.7) * 0.05;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a - 0.2) * r * 0.82, Math.sin(a - 0.2) * r * 0.82);
+        ctx.lineTo(Math.cos(a + stride) * r * (1.28 + lv('jambe_4') * 0.08), Math.sin(a + stride) * r * (1.28 + lv('jambe_4') * 0.08));
+        ctx.lineTo(Math.cos(a + 0.2) * r * 0.82, Math.sin(a + 0.2) * r * 0.82);
+        ctx.fill();
+      }
+
+      // Poings : deux bras latéraux qui frappent
+      const fist = r * (0.26 + lv('poing_1') * 0.035);
+      const reachOut = r * (1.02 + swing * 0.35 + lv('poing_2') * 0.05);
+      ctx.fillStyle = '#d97706';
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.lineWidth = r * 0.04;
+      for (const side of [-1, 1]) {
+        const a = side * (1.25 - swing * 0.75);
+        const fx = Math.cos(a) * reachOut;
+        const fy = Math.sin(a) * reachOut;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#92400e';
+        ctx.lineWidth = fist * 0.9;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55);
+        ctx.lineTo(fx, fy);
+        ctx.stroke();
+        ctx.fillStyle = lv('poing_3') > 0 ? '#fde68a' : '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(fx, fy, fist, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Corps : un polygone dont les arêtes se multiplient quand il évolue
+      const sides = 6 + Math.min(10, Math.floor(TITAN_TREE.reduce((s, n) => s + (levels[n.id] || 0), 0) / 3));
+      const bodyPath = (scale) => {
+        ctx.beginPath();
+        for (let k = 0; k < sides; k++) {
+          const a = (k / sides) * Math.PI * 2;
+          const rr = r * scale;
+          if (k === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+          else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        ctx.closePath();
+      };
+      bodyPath(1);
+      ctx.fillStyle = flash > 0 ? '#ffffff' : '#fbbf24';
+      ctx.fill();
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = r * 0.06;
+      ctx.stroke();
+      bodyPath(0.78);
+      ctx.fillStyle = flash > 0 ? '#fde68a' : '#d97706';
+      ctx.fill();
+
+      // Carapace : des plaques autour du torse
+      const plates = lv('coeur_3') * 4;
+      ctx.fillStyle = '#475569';
+      for (let k = 0; k < plates; k++) {
+        const a = (k / Math.max(1, plates)) * Math.PI * 2;
+        ctx.save();
+        ctx.rotate(a);
+        ctx.fillRect(r * 0.62, -r * 0.1, r * 0.22, r * 0.2);
+        ctx.restore();
+      }
+
+      // Cœur : un noyau qui bat
+      const heart = lv('coeur_1');
+      if (heart > 0) {
+        const beat = 1 + Math.sin(time * 5) * 0.09;
+        ctx.fillStyle = lv('coeur_4') > 0 ? '#fda4af' : '#f43f5e';
+        ctx.beginPath();
+        ctx.arc(-r * 0.12, 0, r * (0.16 + heart * 0.025) * beat, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Yeux : un de plus par niveau de Prisme
+      const eyes = 1 + lv('oeil_3') * 2;
+      const eyeSize = r * (0.11 + lv('oeil_1') * 0.02);
+      for (let k = 0; k < eyes; k++) {
+        const a = (k - (eyes - 1) / 2) * 0.42;
+        const ex = Math.cos(a) * r * 0.56;
+        const ey = Math.sin(a) * r * 0.56;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(ex, ey, eyeSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = lv('oeil_1') > 0 ? '#0ea5e9' : '#1e293b';
+        ctx.beginPath();
+        ctx.arc(ex + eyeSize * 0.3, ey, eyeSize * 0.55, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Couronne : indépendante de l'orientation, elle tourne lentement
+      const crown = lv('couronne_1');
+      if (crown > 0) {
+        const spikes = 4 + crown * 2;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(time * 0.5);
+        ctx.fillStyle = '#c084fc';
+        for (let k = 0; k < spikes; k++) {
+          const a = (k / spikes) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a - 0.09) * r * 1.08, Math.sin(a - 0.09) * r * 1.08);
+          ctx.lineTo(Math.cos(a) * r * 1.42, Math.sin(a) * r * 1.42);
+          ctx.lineTo(Math.cos(a + 0.09) * r * 1.08, Math.sin(a + 0.09) * r * 1.08);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function renderTitan(ctx, zoom) {
+      const i = titan.idx;
+      const x = pos_x[i];
+      const y = pos_y[i];
+      const r = radius[i];
+      const time = performance.now() / 1000;
+
+      if (titan.auraRadius > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.09;
+        ctx.fillStyle = '#c084fc';
+        ctx.beginPath();
+        ctx.arc(x, y, titan.auraRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.45;
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 1.5 / zoom;
+        ctx.setLineDash([10 / zoom, 8 / zoom]);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (titan.beamTime > 0) {
+        const length = titanBeamLength(r);
+        const width = Math.max(26, r * 0.42);
+        ctx.save();
+        ctx.lineCap = 'round';
+        for (const a of titanBeamRays()) {
+          const ex = x + Math.cos(a) * length;
+          const ey = y + Math.sin(a) * length;
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.38)';
+          ctx.lineWidth = width * 2;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+          ctx.strokeStyle = 'rgba(224, 242, 254, 0.95)';
+          ctx.lineWidth = width * 0.55;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Un halot permet de repérer le Titan même très dézoomé
+      ctx.save();
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = '#fde68a';
+      ctx.beginPath();
+      ctx.arc(x, y, r * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      drawTitanBody(ctx, x, y, r, titan.facing, titan.levels, time, titan.swing, hit_flash[i]);
+
+      // Barre de vie toujours lisible, quelle que soit la distance
+      const ratio = Math.max(0, Math.min(1, hp[i] / max_hp[i]));
+      const barW = Math.max(r * 2, 90 / zoom);
+      const barH = Math.max(r * 0.1, 7 / zoom);
+      const by = y - r * 1.5 - barH * 2;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(x - barW / 2 - 1 / zoom, by - 1 / zoom, barW + 2 / zoom, barH + 2 / zoom);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(x - barW / 2, by, barW * ratio, barH);
+    }
+
+    // ---- HUD ----
+    let lastTitanHudSignature = '';
+    function updateTitanHUD() {
+      if (!state.duo) return;
+      const alive = titan.idx >= 0;
+      const maxHpValue = alive ? max_hp[titan.idx] : 1;
+      const hpValue = alive ? hp[titan.idx] : 0;
+      const pct = Math.round((hpValue / maxHpValue) * 100);
+      const cds = Object.keys(TITAN_ABILITIES).map((k) => Math.ceil(titan.cooldowns[k])).join(',');
+      const levelSig = Object.keys(TITAN_ABILITIES).map((k) => titanLevel(TITAN_ABILITIES[k].node)).join(',');
+      const signature = `${pct}|${titan.souls}|${cds}|${levelSig}|${alive}`;
+      if (signature === lastTitanHudSignature) return;
+      lastTitanHudSignature = signature;
+      document.getElementById('titanHpFill').style.width = `${pct}%`;
+      document.getElementById('titanHpLabel').textContent = alive
+        ? `${Math.max(0, Math.round(hpValue))} / ${Math.round(maxHpValue)}`
+        : (state.inBattle ? '💀 À TERRE' : '…');
+      document.getElementById('titanSouls').textContent = titan.souls;
+      const affordable = TITAN_TREE.some((n) => titanLevel(n.id) < n.max && isTitanNodeUnlocked(n) && titan.souls >= titanNodeCost(n));
+      document.getElementById('titanTreeBtn').classList.toggle('affordable', affordable);
+      document.querySelectorAll('.titan-ability').forEach((btn) => {
+        const key = btn.getAttribute('data-ability');
+        const ability = TITAN_ABILITIES[key];
+        const locked = titanLevel(ability.node) <= 0;
+        const cd = titan.cooldowns[key];
+        btn.classList.toggle('locked', locked);
+        btn.classList.toggle('cooling', !locked && cd > 0);
+        btn.querySelector('.titan-ability-cd').textContent = locked ? '🔒' : (cd > 0 ? Math.ceil(cd) : ability.key);
+      });
+    }
+
+    // ---- L'arbre : une constellation autour du Titan ----
+    const titanTreeModal = document.getElementById('titanTreeModal');
+    let titanTreeOpenedAt = 0;
+
+    function titanNodePosition(node) {
+      if (!node.branch) return { x: 500, y: 500 };
+      const index = TITAN_BRANCHES.findIndex((b) => b.key === node.branch);
+      const base = -90 + index * 72;
+      const radii = [0, 195, 305, 415];
+      const angle = (base + node.offset * (node.ring === 1 ? 0 : (node.ring === 2 ? 15 : 12))) * Math.PI / 180;
+      return { x: 500 + Math.cos(angle) * radii[node.ring], y: 500 + Math.sin(angle) * radii[node.ring] };
+    }
+
+    function renderTitanTree() {
+      const svg = document.getElementById('titanTreeSvg');
+      const NS = 'http://www.w3.org/2000/svg';
+      svg.innerHTML = '';
+      document.getElementById('titanTreeSouls').textContent = titan.souls;
+
+      const stars = document.createElementNS(NS, 'g');
+      for (let k = 0; k < 90; k++) {
+        const star = document.createElementNS(NS, 'circle');
+        const a = k * 2.399;
+        const d = 60 + (k * 37) % 440;
+        star.setAttribute('cx', 500 + Math.cos(a) * d);
+        star.setAttribute('cy', 500 + Math.sin(a) * d);
+        star.setAttribute('r', 0.8 + (k % 3) * 0.5);
+        star.setAttribute('fill', 'rgba(226, 232, 240, 0.4)');
+        stars.appendChild(star);
+      }
+      svg.appendChild(stars);
+
+      for (const node of TITAN_TREE) {
+        if (!node.parent) continue;
+        const a = titanNodePosition(titanNodeMap[node.parent]);
+        const b = titanNodePosition(node);
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', a.x);
+        line.setAttribute('y1', a.y);
+        line.setAttribute('x2', b.x);
+        line.setAttribute('y2', b.y);
+        const branch = TITAN_BRANCHES.find((br) => br.key === node.branch);
+        const lit = titanLevel(node.id) > 0;
+        line.setAttribute('stroke', lit ? branch.color : 'rgba(148, 163, 184, 0.28)');
+        line.setAttribute('stroke-width', lit ? 5 : 2.5);
+        svg.appendChild(line);
+      }
+
+      TITAN_BRANCHES.forEach((branch, index) => {
+        const angle = (-90 + index * 72) * Math.PI / 180;
+        const label = document.createElementNS(NS, 'text');
+        label.setAttribute('x', 500 + Math.cos(angle) * 486);
+        label.setAttribute('y', 500 + Math.sin(angle) * 486 + (Math.sin(angle) < -0.5 ? 18 : 7));
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('class', 'titan-branch-label');
+        label.setAttribute('fill', branch.color);
+        label.textContent = branch.name;
+        svg.appendChild(label);
+      });
+
+      for (const node of TITAN_TREE) {
+        if (!node.branch) continue;
+        const pos = titanNodePosition(node);
+        const level = titanLevel(node.id);
+        const unlocked = isTitanNodeUnlocked(node);
+        const maxed = level >= node.max;
+        const canBuy = unlocked && !maxed && titan.souls >= titanNodeCost(node);
+        const branch = TITAN_BRANCHES.find((br) => br.key === node.branch);
+        const group = document.createElementNS(NS, 'g');
+        group.setAttribute('class', 'titan-node');
+        group.setAttribute('role', 'button');
+        group.setAttribute('aria-label', node.name);
+        group.addEventListener('click', () => {
+          titan.selectedNode = node.id;
+          renderTitanTree();
+        });
+
+        const circle = document.createElementNS(NS, 'circle');
+        circle.setAttribute('cx', pos.x);
+        circle.setAttribute('cy', pos.y);
+        circle.setAttribute('r', 42);
+        circle.setAttribute('fill', level > 0 ? 'rgba(30, 41, 59, 0.98)' : 'rgba(15, 23, 42, 0.96)');
+        circle.setAttribute('stroke', maxed ? '#34d399' : (canBuy ? '#fbbf24' : (level > 0 ? branch.color : (unlocked ? 'rgba(148, 163, 184, 0.6)' : 'rgba(148, 163, 184, 0.2)'))));
+        circle.setAttribute('stroke-width', titan.selectedNode === node.id ? 7 : 4);
+        group.appendChild(circle);
+
+        const icon = document.createElementNS(NS, 'text');
+        icon.setAttribute('x', pos.x);
+        icon.setAttribute('y', pos.y + 13);
+        icon.setAttribute('text-anchor', 'middle');
+        icon.setAttribute('font-size', '36');
+        icon.setAttribute('opacity', unlocked ? '1' : '0.35');
+        icon.textContent = node.icon;
+        group.appendChild(icon);
+
+        const pips = document.createElementNS(NS, 'text');
+        pips.setAttribute('x', pos.x);
+        pips.setAttribute('y', pos.y + 62);
+        pips.setAttribute('text-anchor', 'middle');
+        pips.setAttribute('font-size', '19');
+        pips.setAttribute('font-weight', '800');
+        pips.setAttribute('fill', maxed ? '#34d399' : (level > 0 ? branch.color : '#94a3b8'));
+        pips.textContent = `${level}/${node.max}`;
+        group.appendChild(pips);
+        svg.appendChild(group);
+      }
+
+      const selected = titanNodeMap[titan.selectedNode] || titanNodeMap.eveil;
+      const selectedLevel = titanLevel(selected.id);
+      const selectedUnlocked = isTitanNodeUnlocked(selected);
+      const selectedMaxed = selectedLevel >= selected.max;
+      const cost = titanNodeCost(selected);
+      document.getElementById('titanInspTitle').textContent = `${selected.icon} ${selected.name} (${selectedLevel}/${selected.max})`;
+      document.getElementById('titanInspDesc').textContent = selected.desc;
+      const buy = document.getElementById('titanBuyBtn');
+      if (selectedMaxed) {
+        buy.textContent = '✓ AU MAXIMUM';
+        buy.disabled = true;
+      } else if (!selectedUnlocked) {
+        buy.textContent = `🔒 ${titanNodeMap[selected.parent].name.toUpperCase()} D'ABORD`;
+        buy.disabled = true;
+      } else if (titan.souls < cost) {
+        buy.textContent = `IL MANQUE ${cost - titan.souls} ÂMES`;
+        buy.disabled = true;
+      } else {
+        buy.textContent = `🧬 ÉVOLUER (${cost} ÂMES)`;
+        buy.disabled = false;
+      }
+      buy.style.opacity = buy.disabled ? '0.5' : '1';
+    }
+
+    function buyTitanNode(id) {
+      const node = titanNodeMap[id];
+      if (!node) return false;
+      if (net.role === 'guest') {
+        netSend({ k: 'buy', id });
+        return true;
+      }
+      if (titanLevel(id) >= node.max || !isTitanNodeUnlocked(node)) return false;
+      const cost = titanNodeCost(node);
+      if (titan.souls < cost) return false;
+      titan.souls -= cost;
+      titan.levels[id] = titanLevel(id) + 1;
+      if (titan.idx >= 0) applyTitanStats(titan.idx);
+      playSfx('gold');
+      markSaveDirty();
+      return true;
+    }
+
+    function openTitanTree() {
+      renderTitanTree();
+      titanTreeModal.classList.add('open');
+      titanTreeOpenedAt = performance.now();
+    }
+
+    function updateTitanPreview(now) {
+      if (!titanTreeModal.classList.contains('open')) return;
+      const preview = document.getElementById('titanPreview');
+      const size = preview.width;
+      const ctx = preview.getContext('2d');
+      ctx.clearRect(0, 0, size, size);
+      const stats = computeTitanStats();
+      // La silhouette grandit vraiment dans son cadre à mesure que le Titan évolue
+      const shown = size * 0.19 * Math.min(1.35, 0.72 + stats.radius / 260);
+      drawTitanBody(ctx, size / 2, size / 2, shown, -Math.PI / 2 + Math.sin(now / 1200) * 0.15, titan.levels, now / 1000, 0, 0);
+      document.getElementById('titanSizeLabel').textContent = `Taille ${Math.round(stats.radius)}`;
+    }
+
+    document.getElementById('titanBuyBtn').addEventListener('click', () => {
+      if (buyTitanNode(titan.selectedNode)) renderTitanTree();
+    });
+    document.getElementById('titanTreeBtn').addEventListener('click', openTitanTree);
+    document.getElementById('titanPreviewBtn').addEventListener('click', () => {
+      titan.selectedNode = 'eveil';
+      renderTitanTree();
+    });
+    document.querySelectorAll('.titan-ability').forEach((btn) => {
+      btn.addEventListener('click', () => useTitanAbility(btn.getAttribute('data-ability')));
+    });
+
+    // ---- Joystick tactile ----
+    const titanStick = document.getElementById('titanStick');
+    const titanStickKnob = document.getElementById('titanStickKnob');
+    function moveStick(touch) {
+      const rect = titanStick.getBoundingClientRect();
+      const half = rect.width / 2;
+      let dx = (touch.clientX - rect.left - half) / half;
+      let dy = (touch.clientY - rect.top - half) / half;
+      const len = Math.hypot(dx, dy);
+      if (len > 1) {
+        dx /= len;
+        dy /= len;
+      }
+      titan.stickX = dx;
+      titan.stickY = dy;
+      titanStickKnob.style.transform = `translate(${dx * half * 0.6}px, ${dy * half * 0.6}px)`;
+    }
+    function resetStick() {
+      titan.stickX = 0;
+      titan.stickY = 0;
+      titanStickKnob.style.transform = '';
+    }
+    titanStick.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      moveStick(e.targetTouches[0]);
+    }, { passive: false });
+    titanStick.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      moveStick(e.targetTouches[0]);
+    }, { passive: false });
+    titanStick.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      if (e.targetTouches.length === 0) resetStick();
+    }, { passive: false });
+    titanStick.addEventListener('touchcancel', resetStick);
+
+    function setDuoMode(duo) {
+      state.duo = duo;
+      document.body.classList.toggle('duo-mode', duo);
+      lastTitanHudSignature = '';
+      measureFreeArea();
+      refreshCameraFit();
+    }
+
+    // =========================================================================
+    // DUO EN LIGNE : pair à pair (WebRTC), sans serveur de jeu
+    // L'hôte fait tourner la simulation. L'invité reçoit l'état du monde,
+    // l'affiche avec le même moteur de rendu, et renvoie ses commandes.
+    // =========================================================================
+    const SNAPSHOT_INTERVAL = 0.08;
+    const HUD_INTERVAL = 0.2;
+    const INPUT_INTERVAL = 0.05;
+    const MAX_SNAPSHOT_PROJECTILES = 300;
+    const NET_POS_SCALE = 65535 / WORLD_W;
+    const net = {
+      role: null, pc: null, control: null, snap: null, connected: false,
+      snapTimer: 0, hudTimer: 0, inputTimer: 0, events: [],
+      lastScale: 0, lastWave: 0, snapshotAge: 0, lastInput: ''
+    };
+    const replica = {
+      fromX: new Float32Array(MAX_ENTITIES), fromY: new Float32Array(MAX_ENTITIES),
+      toX: new Float32Array(MAX_ENTITIES), toY: new Float32Array(MAX_ENTITIES),
+      seen: new Uint8Array(MAX_ENTITIES), progress: 1, projectileCount: 0
+    };
+
+    function netEmit(...event) {
+      if (net.role === 'host' && net.connected && net.events.length < 800) net.events.push(event);
+    }
+
+    function netSend(message) {
+      if (net.control && net.control.readyState === 'open') net.control.send(JSON.stringify(message));
+    }
+
+    async function encodeSignal(description) {
+      const json = JSON.stringify({ t: description.type, s: description.sdp });
+      let bytes = new TextEncoder().encode(json);
+      let prefix = 'p';
+      if (window.CompressionStream) {
+        const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+        bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+        prefix = 'z';
+      }
+      let binary = '';
+      for (const b of bytes) binary += String.fromCharCode(b);
+      return prefix + btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    async function decodeSignal(code) {
+      const clean = code.trim().replace(/\s+/g, '');
+      const body = clean.slice(1).replace(/-/g, '+').replace(/_/g, '/');
+      const binary = atob(body);
+      let bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+      if (clean[0] === 'z') {
+        const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+      }
+      const parsed = JSON.parse(new TextDecoder().decode(bytes));
+      return { type: parsed.t, sdp: parsed.s };
+    }
+
+    function createPeer() {
+      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+      pc.addEventListener('connectionstatechange', () => {
+        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') netHandleDisconnect();
+      });
+      return pc;
+    }
+
+    function waitForIce(pc) {
+      if (pc.iceGatheringState === 'complete') return Promise.resolve();
+      return new Promise((resolve) => {
+        const finish = () => {
+          pc.removeEventListener('icegatheringstatechange', check);
+          resolve();
+        };
+        const check = () => {
+          if (pc.iceGatheringState === 'complete') finish();
+        };
+        pc.addEventListener('icegatheringstatechange', check);
+        setTimeout(finish, 4000);
+      });
+    }
+
+    function bindChannels() {
+      if (net.control) {
+        net.control.onmessage = (e) => netHandleMessage(JSON.parse(e.data));
+        net.control.onclose = netHandleDisconnect;
+        net.control.onopen = () => netHandleOpen();
+        if (net.control.readyState === 'open') netHandleOpen();
+      }
+      if (net.snap) {
+        net.snap.binaryType = 'arraybuffer';
+        net.snap.onmessage = (e) => applySnapshot(e.data);
+      }
+    }
+
+    async function netHostCreateOffer() {
+      netClose();
+      net.role = 'pending-host';
+      net.pc = createPeer();
+      net.control = net.pc.createDataChannel('control', { ordered: true });
+      net.snap = net.pc.createDataChannel('snap', { ordered: false, maxRetransmits: 0 });
+      bindChannels();
+      await net.pc.setLocalDescription(await net.pc.createOffer());
+      await waitForIce(net.pc);
+      return encodeSignal(net.pc.localDescription);
+    }
+
+    async function netHostAcceptAnswer(code) {
+      await net.pc.setRemoteDescription(await decodeSignal(code));
+    }
+
+    async function netGuestAcceptOffer(code) {
+      netClose();
+      net.role = 'pending-guest';
+      net.pc = createPeer();
+      net.pc.addEventListener('datachannel', (e) => {
+        if (e.channel.label === 'control') net.control = e.channel;
+        else net.snap = e.channel;
+        bindChannels();
+      });
+      await net.pc.setRemoteDescription(await decodeSignal(code));
+      await net.pc.setLocalDescription(await net.pc.createAnswer());
+      await waitForIce(net.pc);
+      return encodeSignal(net.pc.localDescription);
+    }
+
+    function netHandleOpen() {
+      if (net.connected) return;
+      net.connected = true;
+      if (net.role === 'pending-host') {
+        net.role = 'host';
+        document.getElementById('duoModal').classList.remove('open');
+        startNewGame(true);
+        hideTitle();
+        showNotification("🌐 TITAN CONNECTÉ ! PEIGNEZ VOTRE ARMÉE, IL VOUS REJOINDRA AU COMBAT.", 'victory');
+      } else if (net.role === 'pending-guest') {
+        net.role = 'guest';
+        document.getElementById('duoModal').classList.remove('open');
+        enterGuestMode();
+      }
+    }
+
+    function netClose() {
+      if (net.control) net.control.onclose = null;
+      if (net.pc) {
+        try { net.pc.close(); } catch (err) {}
+      }
+      net.pc = null;
+      net.control = null;
+      net.snap = null;
+      net.connected = false;
+      net.role = null;
+      net.events.length = 0;
+    }
+
+    function netHandleDisconnect() {
+      if (!net.connected) return;
+      const wasGuest = net.role === 'guest';
+      netClose();
+      document.body.classList.remove('role-guest');
+      if (wasGuest) {
+        state.inBattle = false;
+        state.paused = false;
+        document.body.classList.remove('in-battle');
+        clearAllEntities();
+        setDuoMode(false);
+        gameStarted = false;
+        openTitle();
+      }
+      showNotification("🔌 LA CONNEXION AVEC L'AUTRE JOUEUR EST PERDUE.", 'defeat');
+    }
+
+    function enterGuestMode() {
+      gameStarted = true;
+      clearAllEntities();
+      setDuoMode(true);
+      document.body.classList.add('role-guest');
+      resetTitanProgress();
+      savedFormation = [];
+      hideTitle();
+      measureFreeArea();
+      refreshCameraFit();
+      resetPaintLayer();
+      showNotification("🌐 CONNECTÉ ! VOUS ÊTES LE TITAN. LE GÉNÉRAL LANCE LA VAGUE.", 'victory');
+    }
+
+    // ---- Hôte : envoi de l'état du monde ----
+    function writeSnapshot() {
+      let unitCount = 0;
+      for (let i = 0; i < MAX_ENTITIES; i++) if (active[i] === 1) unitCount++;
+      let projCount = 0;
+      for (let i = 0; i < MAX_PROJECTILES && projCount < MAX_SNAPSHOT_PROJECTILES; i++) if (proj_active[i] === 1) projCount++;
+      const words = new Uint16Array(2 + unitCount * 4 + projCount * 3);
+      words[0] = unitCount;
+      words[1] = projCount;
+      let p = 2;
+      for (let i = 0; i < MAX_ENTITIES; i++) {
+        if (active[i] === 0) continue;
+        const pct = Math.max(0, Math.min(100, Math.round((hp[i] / max_hp[i]) * 100)));
+        words[p++] = i;
+        words[p++] = Math.max(0, Math.min(65535, pos_x[i] * NET_POS_SCALE));
+        words[p++] = Math.max(0, Math.min(65535, pos_y[i] * NET_POS_SCALE));
+        words[p++] = (shape_type[i] << 9) | (team[i] << 8) | pct;
+      }
+      let written = 0;
+      for (let i = 0; i < MAX_PROJECTILES && written < projCount; i++) {
+        if (proj_active[i] === 0) continue;
+        const angle = Math.round(((Math.atan2(proj_vy[i], proj_vx[i]) + Math.PI) / (Math.PI * 2)) * 255) & 255;
+        words[p++] = Math.max(0, Math.min(65535, proj_x[i] * NET_POS_SCALE));
+        words[p++] = Math.max(0, Math.min(65535, proj_y[i] * NET_POS_SCALE));
+        words[p++] = (angle << 8) | (proj_team[i] << 1) | proj_type[i];
+        written++;
+      }
+      return words.buffer;
+    }
+
+    function hudMessage() {
+      const t = titan.idx;
+      return {
+        k: 'hud',
+        wave: state.wave, gold: state.gold, inBattle: state.inBattle, paused: state.paused, speed: state.gameSpeed,
+        scale: arena.scale, players: playerCount, enemies: enemyCount, maxPop: state.maxPopulation,
+        difficulty: state.difficulty, breakdown: enemyWaveBreakdownText, slowmo: pendingWaveOutcome !== null,
+        titan: {
+          souls: titan.souls, levels: titan.levels, facing: titan.facing, swing: titan.swing,
+          hp: t >= 0 ? hp[t] : 0, maxHp: t >= 0 ? max_hp[t] : 1, radius: t >= 0 ? radius[t] : 26,
+          cooldowns: titan.cooldowns, beamTime: titan.beamTime, beamAngle: titan.beamAngle,
+          auraRadius: titan.auraRadius, auraDamage: titan.auraDamage
+        }
+      };
+    }
+
+    function netHostTick(rawDt) {
+      if (!net.connected) return;
+      net.snapTimer -= rawDt;
+      if (net.snapTimer <= 0 && net.snap && net.snap.readyState === 'open' && net.snap.bufferedAmount < 200000) {
+        net.snapTimer = SNAPSHOT_INTERVAL;
+        try { net.snap.send(writeSnapshot()); } catch (err) {}
+      }
+      net.hudTimer -= rawDt;
+      if (net.hudTimer <= 0) {
+        net.hudTimer = HUD_INTERVAL;
+        if (net.events.length > 0) {
+          netSend({ k: 'ev', e: net.events });
+          net.events = [];
+        }
+        netSend(hudMessage());
+      }
+    }
+
+    function netSendTableau(info) {
+      if (net.role !== 'host') return;
+      if (net.events.length > 0) {
+        netSend({ k: 'ev', e: net.events });
+        net.events = [];
+      }
+      netSend({
+        k: 'tableau', outcome: info.outcome, wave: info.wave, stars: info.stars, survivors: info.survivors,
+        duration: info.duration, kills: info.kills, lost: info.lost, inkUsed: info.inkUsed, bonusGold: info.bonusGold,
+        starGold: info.starGold, interestGold: info.interestGold, mapName: info.mapName, titanKills: info.titanKills, title: info.title
+      });
+    }
+
+    // ---- Invité : reproduction du monde ----
+    function applySnapshot(buffer) {
+      if (net.role !== 'guest') return;
+      const words = new Uint16Array(buffer);
+      const unitCount = words[0];
+      const projCount = words[1];
+      replica.seen.fill(0);
+      let p = 2;
+      titan.idx = -1;
+      for (let n = 0; n < unitCount; n++) {
+        const i = words[p++];
+        const x = words[p++] / NET_POS_SCALE;
+        const y = words[p++] / NET_POS_SCALE;
+        const info = words[p++];
+        const type = info >> 9;
+        const uTeam = (info >> 8) & 1;
+        const pct = info & 255;
+        const isNew = active[i] === 0 || shape_type[i] !== type || team[i] !== uTeam;
+        if (isNew) {
+          replica.fromX[i] = x;
+          replica.fromY[i] = y;
+          pos_x[i] = x;
+          pos_y[i] = y;
+          max_hp[i] = 100;
+          hp[i] = pct;
+          radius[i] = UNIT_SPECS[type].radius;
+        } else {
+          replica.fromX[i] = pos_x[i];
+          replica.fromY[i] = pos_y[i];
+          if (type !== TYPE_TITAN) {
+            if (pct < hp[i]) hit_flash[i] = 0.12;
+            hp[i] = pct;
+          }
+        }
+        replica.toX[i] = x;
+        replica.toY[i] = y;
+        vel_x[i] = (x - replica.fromX[i]) / SNAPSHOT_INTERVAL;
+        vel_y[i] = (y - replica.fromY[i]) / SNAPSHOT_INTERVAL;
+        active[i] = 1;
+        team[i] = uTeam;
+        shape_type[i] = type;
+        replica.seen[i] = 1;
+        if (type === TYPE_TITAN) titan.idx = i;
+      }
+      for (let i = 0; i < MAX_ENTITIES; i++) {
+        if (active[i] === 1 && replica.seen[i] === 0) active[i] = 0;
+      }
+      proj_active.fill(0);
+      for (let n = 0; n < projCount; n++) {
+        proj_x[n] = words[p++] / NET_POS_SCALE;
+        proj_y[n] = words[p++] / NET_POS_SCALE;
+        const info = words[p++];
+        const angle = ((info >> 8) / 255) * Math.PI * 2 - Math.PI;
+        proj_vx[n] = Math.cos(angle) * 260;
+        proj_vy[n] = Math.sin(angle) * 260;
+        proj_team[n] = (info >> 1) & 1;
+        proj_type[n] = info & 1;
+        proj_active[n] = 1;
+      }
+      replica.progress = 0;
+      if (titan.idx >= 0 && net.titanRadius) radius[titan.idx] = net.titanRadius;
+      routeDirty = true;
+    }
+
+    function updateGuestReplica(rawDt) {
+      if (replica.progress < 1) {
+        replica.progress = Math.min(1, replica.progress + rawDt / SNAPSHOT_INTERVAL);
+        const t = replica.progress;
+        for (let i = 0; i < MAX_ENTITIES; i++) {
+          if (active[i] === 0) continue;
+          pos_x[i] = replica.fromX[i] + (replica.toX[i] - replica.fromX[i]) * t;
+          pos_y[i] = replica.fromY[i] + (replica.toY[i] - replica.fromY[i]) * t;
+        }
+      }
+      if (!state.paused) {
+        for (let i = 0; i < MAX_SNAPSHOT_PROJECTILES; i++) {
+          if (proj_active[i] === 1) {
+            proj_x[i] += proj_vx[i] * rawDt;
+            proj_y[i] += proj_vy[i] * rawDt;
+          }
+        }
+      }
+    }
+
+    function updateGuestSpellDabs(dt) {
+      for (let i = spellDabs.length - 1; i >= 0; i--) {
+        spellDabs[i].life -= dt;
+        if (spellDabs[i].life <= 0) spellDabs.splice(i, 1);
+      }
+    }
+
+    function netGuestTick(rawDt) {
+      if (!net.connected) return;
+      net.inputTimer -= rawDt;
+      if (net.inputTimer <= 0) {
+        net.inputTimer = INPUT_INTERVAL;
+        const message = JSON.stringify({ k: 'input', dx: +titan.inputX.toFixed(2), dy: +titan.inputY.toFixed(2) });
+        if (message !== net.lastInput) {
+          net.lastInput = message;
+          if (net.control && net.control.readyState === 'open') net.control.send(message);
+        }
+      }
+    }
+
+    function netHandleMessage(m) {
+      if (m.k === 'input' && net.role === 'host') {
+        titan.inputX = Math.max(-1, Math.min(1, m.dx || 0));
+        titan.inputY = Math.max(-1, Math.min(1, m.dy || 0));
+      } else if (m.k === 'ability' && net.role === 'host') {
+        useTitanAbility(m.id);
+      } else if (m.k === 'buy' && net.role === 'host') {
+        buyTitanNode(m.id);
+      } else if (net.role === 'guest') {
+        if (m.k === 'hud') applyHudMessage(m);
+        else if (m.k === 'ev') applyEvents(m.e);
+        else if (m.k === 'tableau') applyTableauMessage(m);
+      }
+    }
+
+    function applyHudMessage(m) {
+      const wasInBattle = state.inBattle;
+      state.gold = m.gold;
+      state.gameSpeed = m.speed;
+      state.difficulty = m.difficulty;
+      state.maxPopulation = m.maxPop;
+      playerCount = m.players;
+      enemyCount = m.enemies;
+      enemyWaveBreakdownText = m.breakdown;
+      pendingWaveOutcome = m.slowmo ? 'guest' : null;
+
+      if (m.inBattle && !wasInBattle) {
+        state.wave = m.wave;
+        syncGuestWorld(m);
+        resetPaintLayer();
+        spellDabs.length = 0;
+        state.inBattle = true;
+        setBattleUI(true);
+      } else if (!m.inBattle && wasInBattle) {
+        state.inBattle = false;
+        spellDabs.length = 0;
+        setBattleUI(false);
+      }
+      state.wave = m.wave;
+      syncGuestWorld(m);
+      if (state.paused !== m.paused) setPaused(m.paused);
+      document.getElementById('difficultySelect').value = m.difficulty;
+
+      const t = m.titan;
+      const levelsChanged = JSON.stringify(t.levels) !== JSON.stringify(titan.levels);
+      const soulsChanged = t.souls !== titan.souls;
+      titan.souls = t.souls;
+      titan.levels = t.levels;
+      titan.facing = t.facing;
+      titan.swing = t.swing;
+      titan.cooldowns = t.cooldowns;
+      titan.beamTime = t.beamTime;
+      titan.beamAngle = t.beamAngle;
+      titan.auraRadius = t.auraRadius;
+      titan.auraDamage = t.auraDamage;
+      net.titanRadius = t.radius;
+      if (titan.idx >= 0) {
+        radius[titan.idx] = t.radius;
+        max_hp[titan.idx] = t.maxHp;
+        hp[titan.idx] = t.hp;
+      }
+      if ((levelsChanged || soulsChanged) && titanTreeModal.classList.contains('open')) renderTitanTree();
+    }
+
+    function syncGuestWorld(m) {
+      if (arena.scale !== m.scale || terrain.wave !== m.wave || !terrain.map) {
+        arena.scale = m.scale;
+        peakArmySize = 0;
+        lastEnemyFootprint = 0;
+        updateArena();
+        arena.scale = m.scale;
+        loadMapForWave(m.wave);
+      }
+    }
+
+    function applyEvents(events) {
+      for (const e of events) {
+        if (e[0] === 's') {
+          paintSplat(e[1], e[2], e[3], e[4]);
+          spawnShards(e[1], e[2], e[3], e[4]);
+        } else if (e[0] === 'd') {
+          const spell = SPELLS[e[4]];
+          spellDabs.push({ x: e[1], y: e[2], r: e[3], key: e[4], life: spell.life, maxLife: spell.life, seed: Math.random() * 6.28 });
+          paintBlob(e[1], e[2], e[3] * 0.42, spell.paint, 0.34);
+        } else if (e[0] === 'r') {
+          aoeRings.push({ x: e[1], y: e[2], maxR: e[3], color: e[4], life: e[5], maxLife: e[5] });
+        } else if (e[0] === 'b') {
+          paintBlob(e[1], e[2], e[3], e[4], 0.28);
+        }
+      }
+    }
+
+    function applyTableauMessage(m) {
+      const terrainImage = document.createElement('canvas');
+      terrainImage.width = terrainCanvas.width;
+      terrainImage.height = terrainCanvas.height;
+      terrainImage.getContext('2d').drawImage(terrainCanvas, 0, 0);
+      m.terrain = { image: terrainImage, scale: terrainLayer.scale, left: terrainLayer.left, top: terrainLayer.top };
+      showTableau(m);
+    }
+
+    // ---- L'interface du duo ----
+    function setDuoStep(step) {
+      document.querySelectorAll('.duo-step').forEach((el) => {
+        el.classList.toggle('active', el.getAttribute('data-step') === step);
+      });
+    }
+
+    function confirmIfProgress(btn, armedLabel, action) {
+      if ((gameStarted || readSave()) && btn.dataset.armed !== '1') {
+        btn.dataset.armed = '1';
+        btn.dataset.label = btn.textContent;
+        btn.textContent = armedLabel;
+        return;
+      }
+      if (btn.dataset.label) btn.textContent = btn.dataset.label;
+      btn.dataset.armed = '0';
+      action();
+    }
+
+    async function copyToClipboard(text, btn) {
+      try {
+        await navigator.clipboard.writeText(text);
+        const label = btn.textContent;
+        btn.textContent = '✓ COPIÉ';
+        setTimeout(() => { btn.textContent = label; }, 1400);
+      } catch (err) {
+        btn.textContent = 'COPIEZ LE TEXTE À LA MAIN';
+      }
+    }
+
+    document.getElementById('titleDuoBtn').addEventListener('click', () => {
+      setDuoStep('menu');
+      document.getElementById('duoModal').classList.add('open');
+    });
+    document.getElementById('duoLocalBtn').addEventListener('click', (e) => {
+      confirmIfProgress(e.currentTarget, '⚠️ CONFIRMER : EFFACER LA PARTIE ?', () => {
+        netClose();
+        document.getElementById('duoModal').classList.remove('open');
+        startNewGame(true);
+        hideTitle();
+        showNotification(isTouchDevice
+          ? "🤝 UN JOUEUR PEINT, L'AUTRE GUIDE LE TITAN AVEC LE JOYSTICK !"
+          : "🤝 GÉNÉRAL : LA SOURIS. TITAN : ZQSD/WASD, ET J K L I POUR LES CAPACITÉS.");
+        openTitanTree();
+      });
+    });
+    document.getElementById('duoHostBtn').addEventListener('click', (e) => {
+      confirmIfProgress(e.currentTarget, '⚠️ CONFIRMER : EFFACER LA PARTIE ?', async () => {
+        setDuoStep('host');
+        const field = document.getElementById('duoHostCode');
+        const linkField = document.getElementById('duoHostLink');
+        field.value = 'Préparation de la connexion…';
+        linkField.value = '';
+        try {
+          const code = await netHostCreateOffer();
+          field.value = code;
+          linkField.value = `${location.origin}${location.pathname}#duo=${code}`;
+        } catch (err) {
+          field.value = "Impossible de préparer la connexion sur ce navigateur.";
+        }
+      });
+    });
+    document.getElementById('duoJoinBtn').addEventListener('click', () => setDuoStep('join'));
+    document.getElementById('duoHostAcceptBtn').addEventListener('click', async () => {
+      const status = document.getElementById('duoHostStatus');
+      status.textContent = 'Connexion en cours…';
+      try {
+        await netHostAcceptAnswer(document.getElementById('duoHostAnswer').value);
+      } catch (err) {
+        status.textContent = "Ce code de réponse n'est pas valide.";
+      }
+    });
+    async function guestAnswerFromCode(code) {
+      const output = document.getElementById('duoGuestAnswer');
+      const status = document.getElementById('duoGuestStatus');
+      output.value = 'Préparation de la réponse…';
+      status.textContent = '';
+      try {
+        output.value = await netGuestAcceptOffer(code);
+        status.textContent = "Envoyez ce code au Général : la partie démarrera dès qu'il l'aura collé.";
+      } catch (err) {
+        output.value = '';
+        status.textContent = "Ce code d'invitation n'est pas valide.";
+      }
+    }
+    document.getElementById('duoGuestAnswerBtn').addEventListener('click', () => {
+      guestAnswerFromCode(document.getElementById('duoGuestOffer').value);
+    });
+    document.querySelectorAll('[data-copy]').forEach((btn) => {
+      btn.addEventListener('click', () => copyToClipboard(document.getElementById(btn.getAttribute('data-copy')).value, btn));
+    });
+    document.querySelectorAll('[data-duo-step]').forEach((btn) => {
+      btn.addEventListener('click', () => setDuoStep(btn.getAttribute('data-duo-step')));
+    });
+
+    function openDuoLinkIfPresent() {
+      const match = /^#duo=(.+)$/.exec(location.hash);
+      if (!match) return;
+      history.replaceState(null, '', location.pathname + location.search);
+      setDuoStep('join');
+      document.getElementById('duoGuestOffer').value = match[1];
+      document.getElementById('duoModal').classList.add('open');
+      guestAnswerFromCode(match[1]);
     }
 
     let lastTime = performance.now();
@@ -5931,6 +7862,7 @@
         if (bannerTimer <= 0) bannerElem.classList.remove('show');
       }
 
+      if (net.role === 'guest') updateGuestReplica(rawDt);
       updateCamera(rawDt);
       updatePaintLayerTransform();
       updateTerrainLayerTransform();
@@ -5939,11 +7871,21 @@
       try { updateMusic(); } catch (err) {}
       updateCanvasCursor();
       if (routeDirty && !state.inBattle) computeEnemyRoute();
-      updateTouchPaint();
-      handlePaintBrush(rawDt);
+      if (net.role !== 'guest') {
+        updateTouchPaint();
+        handlePaintBrush(rawDt);
+      }
       if (releaseTouchPaintAfterFrame) stopTouchPaint();
+      updateTitanControls(rawDt);
+      if (!state.inBattle && net.role !== 'guest') moveTitanInPreparation(rawDt);
 
-      if (state.inBattle && state.gameSpeed > 0 && !state.paused) {
+      if (net.role === 'guest') {
+        if (state.inBattle && !state.paused) {
+          simClock += effectiveDt;
+          updateGuestSpellDabs(effectiveDt);
+          paintMarchTrails(effectiveDt);
+        }
+      } else if (state.inBattle && state.gameSpeed > 0 && !state.paused) {
         const substeps = 2;
         const subDt = effectiveDt / substeps;
         for (let step = 0; step < substeps; step++) {
@@ -5952,10 +7894,15 @@
           targetingAndCombatSystem(subDt);
           projectileSystem(subDt);
         }
+        titanSystem(effectiveDt);
         spellSystem(effectiveDt);
         paintMarchTrails(effectiveDt);
         checkBattleStatus(rawDt);
       }
+      if (net.role === 'host') netHostTick(rawDt);
+      else if (net.role === 'guest') netGuestTick(rawDt);
+      updateTitanHUD();
+      updateTitanPreview(now);
 
       if (useFallback) {
         renderFallback2D(rawDt);
@@ -5965,7 +7912,7 @@
       renderOverlay(state.paused ? 0 : rawDt);
       updateInkUI();
 
-      if (saveDirty && !state.inBattle) {
+      if (saveDirty && !state.inBattle && net.role !== 'guest') {
         saveTimer -= rawDt;
         if (saveTimer <= 0) saveGame();
       }
@@ -5983,6 +7930,17 @@
       if (e.target.closest('.interactive') || e.target.closest('.modal-overlay') || e.target.closest('.title-screen')) return;
       mousePos.x = e.clientX;
       mousePos.y = e.clientY;
+
+      if (net.role === 'guest') {
+        if (e.button === 0 && !isTouchDevice) {
+          guestMoveHeld = true;
+          updateGuestMoveTarget();
+        } else if (e.button === 1) {
+          e.preventDefault();
+          startPanDrag(e.button, e.clientX, e.clientY);
+        }
+        return;
+      }
 
       if (e.button === 0 && state.inBattle && state.activeSpell && isMouseInFreeArea()) {
         beginSpellStroke(e.clientX, e.clientY);
@@ -6039,12 +7997,22 @@
       if (spellStroke) {
         extendSpellStroke(e.clientX, e.clientY);
       }
+      if (guestMoveHeld) updateGuestMoveTarget();
     });
+
+    let guestMoveHeld = false;
+    function updateGuestMoveTarget() {
+      titan.moveTargetX = screenToWorldX(mousePos.x);
+      titan.moveTargetY = screenToWorldY(mousePos.y);
+    }
 
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) {
         isMouseDown = false;
         spellStroke = null;
+        guestMoveHeld = false;
+        titan.moveTargetX = null;
+        titan.moveTargetY = null;
       }
       if (e.button === 2) isRightMouseDown = false;
       if (panDrag && panDrag.button === e.button) {
@@ -6078,6 +8046,8 @@
       let cursor = 'crosshair';
       if (panDrag) {
         cursor = 'grabbing';
+      } else if (net.role === 'guest') {
+        cursor = 'pointer';
       } else if (state.inBattle && state.activeSpell) {
         cursor = 'crosshair';
       } else if (state.inBattle || !isInsideDeployZone(screenToWorldX(mousePos.x), screenToWorldY(mousePos.y))) {
@@ -6203,12 +8173,12 @@
       const t = e.changedTouches[0];
       mousePos.x = t.clientX;
       mousePos.y = t.clientY;
-      if (state.inBattle && state.activeSpell && isMouseInFreeArea()) {
+      if (state.inBattle && state.activeSpell && isMouseInFreeArea() && net.role !== 'guest') {
         beginSpellStroke(t.clientX, t.clientY);
         return;
       }
 
-      const canPaint = !state.inBattle && isMouseInFreeArea() &&
+      const canPaint = net.role !== 'guest' && !state.inBattle && isMouseInFreeArea() &&
         isInsideDeployZone(screenToWorldX(t.clientX), screenToWorldY(t.clientY));
       if (canPaint) {
         touchPaint = { startedAt: performance.now(), active: false };
@@ -6359,7 +8329,7 @@
         return;
       }
       for (let i = 0; i < MAX_ENTITIES; i++) {
-        if (active[i] === 1 && team[i] === 0) {
+        if (active[i] === 1 && team[i] === 0 && shape_type[i] !== TYPE_TITAN) {
           destroyEntity(i, true);
         }
       }
@@ -6374,25 +8344,24 @@
       if (!state.inBattle) {
         if (playerCount === 0) {
           buildAutoFormation();
-          if (playerCount === 0) return;
+          if (playerCount === 0 && titan.idx < 0) return;
         }
 
         saveCurrentPlayerFormation();
+        peakArmySize = Math.max(peakArmySize, playerCount);
         resetPaintLayer();
         state.inBattle = true;
         state.waveGoldEarned = 0;
         pendingWaveOutcome = null;
         state.ink = state.maxInk * INK_START_RATIO;
         lastInkLabel = -1;
+        updateSpellButtons();
         state.waveStats = { kills: 0, lost: 0, startArmy: playerCount, startClock: simClock, inkUsed: { fire: 0, ice: 0, heal: 0 } };
+        prepareTitanForBattle();
         setPaused(false);
         setBattleUI(true);
         updateInkUI();
-        if (state.wave <= 2) {
-          showNotification(isTouchDevice
-            ? "🎨 CHOISISSEZ UN SORT, PUIS TRACEZ-LE AU DOIGT SUR LE CHAMP DE BATAILLE !"
-            : "🎨 CHOISISSEZ UN SORT (1, 2, 3), PUIS TRACEZ-LE AU CLIC GAUCHE !");
-        }
+        announceBattleStart();
 
         const badge = document.getElementById('phaseBadge');
         badge.textContent = "⚔️ COMBAT EN COURS";
@@ -6455,14 +8424,19 @@
       ArrowRight: 'right', KeyD: 'right'
     };
 
+    // Touches physiques du Titan : WASD en QWERTY, ZQSD en AZERTY
+    const TITAN_KEY_CODES = { KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right' };
+    const TITAN_ABILITY_KEYS = { KeyJ: 'slam', KeyK: 'beam', KeyL: 'charge', KeyI: 'rally' };
+
     window.addEventListener('keyup', (e) => {
       const dir = PAN_KEY_CODES[e.code];
       if (dir) panKeys.delete(dir);
+      if (TITAN_KEY_CODES[e.code]) titan.keys.delete(TITAN_KEY_CODES[e.code]);
     });
 
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        const top = document.querySelector('#helpModal.open, #galleryModal.open, #upgradeModal.open, #tableauModal.open');
+        const top = document.querySelector('#duoModal.open, #helpModal.open, #galleryModal.open, #titanTreeModal.open, #upgradeModal.open, #tableauModal.open');
         if (top) {
           top.classList.remove('open');
         } else if (titleScreen.classList.contains('open')) {
@@ -6479,9 +8453,11 @@
         e.preventDefault();
         if (upgradeModal.classList.contains('open')) {
           upgradeModal.classList.remove('open');
+        } else if (titanTreeModal.classList.contains('open')) {
+          titanTreeModal.classList.remove('open');
         } else if (tableauModal.classList.contains('open')) {
           tableauModal.classList.remove('open');
-        } else if (isOverlayOpen()) {
+        } else if (isOverlayOpen() || net.role === 'guest') {
           return;
         } else if (state.inBattle) {
           // Espace met en pause : se replier reste un choix explicite, via le bouton dédié
@@ -6492,7 +8468,13 @@
         return;
       }
 
-      if (e.key === 'u' || e.key === 'U') {
+      if (state.duo && (e.key === 't' || e.key === 'T')) {
+        if (titanTreeModal.classList.contains('open')) titanTreeModal.classList.remove('open');
+        else if (!isOverlayOpen()) openTitanTree();
+        return;
+      }
+
+      if ((e.key === 'u' || e.key === 'U') && net.role !== 'guest') {
         if (upgradeModal.classList.contains('open')) {
           upgradeModal.classList.remove('open');
         } else if (!isOverlayOpen()) {
@@ -6503,6 +8485,19 @@
       }
 
       if (isOverlayOpen()) return;
+
+      // En duo, ZQSD/WASD et J K L I reviennent au Titan ; les flèches déplacent toujours la vue
+      if (state.duo && net.role !== 'host') {
+        if (TITAN_KEY_CODES[e.code]) {
+          titan.keys.add(TITAN_KEY_CODES[e.code]);
+          e.preventDefault();
+          return;
+        }
+        if (TITAN_ABILITY_KEYS[e.code]) {
+          useTitanAbility(TITAN_ABILITY_KEYS[e.code]);
+          return;
+        }
+      }
 
       const panDir = PAN_KEY_CODES[e.code];
       if (panDir) {
@@ -6522,13 +8517,13 @@
       } else if (e.key === 'f' || e.key === 'F') {
         resetCameraToAuto();
       } else if (e.key === 'p' || e.key === 'P') {
-        if (state.inBattle && pendingWaveOutcome === null) setPaused(!state.paused);
+        if (state.inBattle && pendingWaveOutcome === null && net.role !== 'guest') setPaused(!state.paused);
       } else if (e.key === 'm' || e.key === 'M') {
         setMuted(!isMuted);
       } else {
         // e.code : les touches du haut du clavier marchent aussi en AZERTY, sans Maj
         const digit = /^(?:Digit|Numpad)([1-5])$/.exec(e.code);
-        if (digit) {
+        if (digit && net.role !== 'guest') {
           const n = parseInt(digit[1], 10);
           if (state.inBattle) {
             const keys = ['fire', 'ice', 'heal'];
@@ -6568,13 +8563,13 @@
     updateSpeedButtonUI();
 
     generateEnemyWave(1);
-    buildAutoFormation();
     measureFreeArea();
     refreshCameraFit();
     snapCameraToTarget();
     updateCameraModeUI();
     resetPaintLayer();
     openTitle();
+    openDuoLinkIfPresent();
 
     requestAnimationFrame(gameLoop);
   })();

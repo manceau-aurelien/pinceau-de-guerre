@@ -8,6 +8,8 @@ Un jeu de stratégie où l'on dessine ses troupes au pinceau, où l'on trace ses
 
 ## ✨ Ce qui le rend unique
 
+* **📈 De 5 unités à des milliers :** on commence sans armée, avec juste de quoi recruter 5 Fantassins, sur un terrain minuscule et vu de très près. Vague après vague, l'armée, le terrain et la vue grandissent jusqu'à des batailles titanesques.
+* **🤝 Le mode Duo :** un joueur est le Général et peint son armée, l'autre est le Titan, une unité géante avec son propre arbre d'évolution. Se joue sur le même écran ou en ligne.
 * **🖼️ Le tableau de bataille :** les morts éclaboussent le terrain de peinture et les armées y laissent des coups de pinceau. À la fin de chaque vague, la bataille devient un tableau nommé et signé (« Requiem en Azur, n°12 »), à enregistrer ou à partager. Vos œuvres rejoignent votre galerie.
 * **🔥 Les sorts peints :** en combat, tracez au pinceau un trait de feu, de l'encre gelée ou une aquarelle de soin. Ils consomment de l'encre, regagnée avec le temps et à chaque ennemi vaincu.
 * **⏸ La pause tactique :** figez la bataille et peignez vos sorts à tête reposée.
@@ -40,6 +42,26 @@ Un jeu de stratégie où l'on dessine ses troupes au pinceau, où l'on trace ses
 | 10 | Le Dédale | Un vrai labyrinthe, différent à chaque passage |
 
 Les cartes reviennent ensuite dans le même ordre, à partir de la vague 11.
+
+---
+
+## 🗿 Le mode Duo : Général et Titan
+
+Le **Général** joue comme en solo : il peint son armée, lance les vagues et trace ses sorts. Le **Titan** ne dirige qu'une seule unité, immense. Il enjambe murs et trous, frappe automatiquement ce qui l'entoure, et dépense ses **Âmes** pour évoluer. En duo, les vagues ennemies sont 50 % plus grosses.
+
+Son arbre est une constellation à cinq branches. Chaque compétence le fait grandir et ajoute une partie visible à son corps, ce qui permet de le repérer même très dézoomé.
+
+| Branche | Ce qu'elle apporte | Capacité |
+|---|---|---|
+| ❤️ Le Cœur | PV, régénération, carapace, Seconde Vie | — |
+| 👊 Les Poings | Dégâts, coups en arc | **J** Onde de Choc |
+| 👁️ Le Regard | Rayon plus long, faisceaux multiples, pétrification | **K** Regard Ardent |
+| 🦶 Les Jambes | Vitesse, piétinement, taille de Colosse | **L** Charge |
+| 👑 La Couronne | Aura qui renforce et soigne l'armée, Terreur, Tribut en or | **I** Cri de Ralliement |
+
+**Sur le même écran :** le Général utilise la souris. Le Titan utilise ZQSD (WASD en QWERTY), J K L I pour ses capacités, et T pour son arbre. Sur tablette, le Titan a un joystick à l'écran.
+
+**En ligne :** le Général choisit « Créer la partie » et envoie le lien obtenu. Le Titan l'ouvre et renvoie le code de réponse affiché, que le Général colle pour lancer la partie. Les deux navigateurs se connectent directement l'un à l'autre (WebRTC), sans serveur de jeu. Un serveur public de Google aide seulement à établir la connexion, et chacun voit l'adresse IP de l'autre. Certains réseaux très fermés, comme un réseau d'entreprise ou certaines connexions 4G, peuvent empêcher la connexion. En ligne, le Titan se déplace aussi à la souris ou au joystick.
 
 ---
 
