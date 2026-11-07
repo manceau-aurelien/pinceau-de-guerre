@@ -61,7 +61,7 @@ Son arbre est une constellation à cinq branches. Chaque compétence le fait gra
 
 **Sur le même écran :** le Général utilise la souris. Le Titan utilise ZQSD (WASD en QWERTY), J K L I pour ses capacités, et T pour son arbre. Sur tablette, le Titan a un joystick à l'écran.
 
-**En ligne :** le Général choisit « Créer la partie » et envoie le lien obtenu. Le Titan l'ouvre et renvoie le code de réponse affiché, que le Général colle pour lancer la partie. Les deux navigateurs se connectent directement l'un à l'autre (WebRTC), sans serveur de jeu. Un serveur public de Google aide seulement à établir la connexion, et chacun voit l'adresse IP de l'autre. Certains réseaux très fermés, comme un réseau d'entreprise ou certaines connexions 4G, peuvent empêcher la connexion. En ligne, le Titan se déplace aussi à la souris ou au joystick.
+**En ligne :** le Général choisit « Créer une salle » et obtient un code de 4 caractères (par exemple `K7QF`). Le Titan choisit « Rejoindre avec un code », tape ce code, et la partie démarre. Le Général peut aussi partager un lien direct qui remplit le code tout seul. Le service gratuit PeerJS sert seulement d'annuaire pour le code. Ensuite, les deux navigateurs se connectent directement l'un à l'autre, et chacun voit l'adresse IP de l'autre. Certains réseaux (4G, réseaux d'entreprise) bloquent ces connexions directes. Il faudrait alors un serveur relais, qui n'est pas encore en place. En ligne, le Titan se déplace aussi à la souris ou au joystick.
 
 ---
 

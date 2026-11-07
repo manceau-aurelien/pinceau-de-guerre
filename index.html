@@ -1311,8 +1311,37 @@
       user-select: text;
       -webkit-user-select: text;
     }
-    .duo-details { font-size: 12px; color: var(--text-muted); }
-    .duo-details .duo-row { margin-top: 8px; }
+    .duo-center { justify-content: center; text-align: center; }
+    .room-code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: clamp(44px, 12vw, 76px);
+      font-weight: 900;
+      letter-spacing: 0.22em;
+      text-align: center;
+      color: var(--gold);
+      text-shadow: 0 0 24px rgba(251, 191, 36, 0.45);
+      user-select: all;
+      -webkit-user-select: all;
+    }
+    .room-input {
+      align-self: center;
+      width: min(280px, 100%);
+      padding: 10px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 40px;
+      font-weight: 900;
+      letter-spacing: 0.3em;
+      text-align: center;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: rgba(2, 6, 14, 0.85);
+      border: 2px solid rgba(251, 191, 36, 0.55);
+      border-radius: 12px;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .room-input:focus { border-color: var(--gold); box-shadow: 0 0 18px rgba(251, 191, 36, 0.35); }
     .duo-status { min-height: 16px; font-size: 12px; font-weight: 700; color: var(--gold); }
 
     .titan-tree-modal {
@@ -1773,42 +1802,23 @@
         <div class="duo-step" data-step="menu">
           <p class="duo-intro"><b>Le Général</b> peint son armée comme d'habitude. <b>Le Titan</b> ne dirige qu'une seule unité, immense, avec son propre arbre d'évolution. Les vagues sont 50% plus grosses.</p>
           <button id="duoLocalBtn" class="btn btn-battle title-btn">🖥️ SUR LE MÊME ÉCRAN</button>
-          <button id="duoHostBtn" class="btn btn-primary title-btn">🌐 EN LIGNE : CRÉER LA PARTIE (GÉNÉRAL)</button>
-          <button id="duoJoinBtn" class="btn btn-secondary title-btn">🔗 EN LIGNE : REJOINDRE (TITAN)</button>
+          <button id="duoHostBtn" class="btn btn-primary title-btn">🌐 EN LIGNE : CRÉER UNE SALLE (GÉNÉRAL)</button>
+          <button id="duoJoinBtn" class="btn btn-secondary title-btn">🔢 EN LIGNE : REJOINDRE AVEC UN CODE (TITAN)</button>
         </div>
         <div class="duo-step" data-step="host">
-          <p class="duo-intro"><b>1.</b> Envoyez ce lien à l'autre joueur :</p>
-          <div class="duo-row">
-            <input id="duoHostLink" class="duo-field" readonly aria-label="Lien d'invitation">
-            <button class="btn btn-primary" data-copy="duoHostLink">COPIER</button>
+          <p class="duo-intro duo-center">Donnez ce code à l'autre joueur :</p>
+          <div class="room-code" id="duoRoomCode" aria-live="polite">····</div>
+          <div class="duo-row duo-center">
+            <button class="btn btn-secondary" id="duoShareBtn">🔗 PARTAGER UN LIEN DIRECT</button>
           </div>
-          <details class="duo-details">
-            <summary>Ou utilisez le code d'invitation</summary>
-            <div class="duo-row">
-              <textarea id="duoHostCode" class="duo-field" rows="3" readonly aria-label="Code d'invitation"></textarea>
-              <button class="btn btn-secondary" data-copy="duoHostCode">COPIER</button>
-            </div>
-          </details>
-          <p class="duo-intro"><b>2.</b> Il vous renverra un code de réponse. Collez-le ici :</p>
-          <div class="duo-row">
-            <textarea id="duoHostAnswer" class="duo-field" rows="3" placeholder="Code de réponse" aria-label="Code de réponse"></textarea>
-            <button id="duoHostAcceptBtn" class="btn btn-battle">CONNECTER</button>
-          </div>
-          <div class="duo-status" id="duoHostStatus"></div>
+          <div class="duo-status duo-center" id="duoHostStatus"></div>
           <button class="btn btn-secondary" data-duo-step="menu">← RETOUR</button>
         </div>
         <div class="duo-step" data-step="join">
-          <p class="duo-intro"><b>1.</b> Collez le code d'invitation du Général (si vous avez ouvert son lien, il est déjà rempli) :</p>
-          <div class="duo-row">
-            <textarea id="duoGuestOffer" class="duo-field" rows="3" placeholder="Code d'invitation" aria-label="Code d'invitation"></textarea>
-            <button id="duoGuestAnswerBtn" class="btn btn-primary">VALIDER</button>
-          </div>
-          <p class="duo-intro"><b>2.</b> Renvoyez-lui ce code de réponse :</p>
-          <div class="duo-row">
-            <textarea id="duoGuestAnswer" class="duo-field" rows="3" readonly aria-label="Code de réponse"></textarea>
-            <button class="btn btn-battle" data-copy="duoGuestAnswer">COPIER</button>
-          </div>
-          <div class="duo-status" id="duoGuestStatus"></div>
+          <p class="duo-intro duo-center">Entrez le code donné par le Général :</p>
+          <input id="duoJoinCode" class="room-input" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="····" aria-label="Code de la salle">
+          <button id="duoJoinGoBtn" class="btn btn-battle title-btn">🚀 REJOINDRE</button>
+          <div class="duo-status duo-center" id="duoGuestStatus"></div>
           <button class="btn btn-secondary" data-duo-step="menu">← RETOUR</button>
         </div>
       </div>
@@ -7407,7 +7417,8 @@
     const MAX_SNAPSHOT_PROJECTILES = 300;
     const NET_POS_SCALE = 65535 / WORLD_W;
     const net = {
-      role: null, pc: null, control: null, snap: null, connected: false,
+      role: null, peer: null, control: null, snap: null, connected: false, roomCode: '', guestPeerId: null,
+      onConnected: null, onPeerError: null,
       snapTimer: 0, hudTimer: 0, inputTimer: 0, events: [],
       lastScale: 0, lastWave: 0, snapshotAge: 0, lastInput: ''
     };
@@ -7425,53 +7436,83 @@
       if (net.control && net.control.readyState === 'open') net.control.send(JSON.stringify(message));
     }
 
-    async function encodeSignal(description) {
-      const json = JSON.stringify({ t: description.type, s: description.sdp });
-      let bytes = new TextEncoder().encode(json);
-      let prefix = 'p';
-      if (window.CompressionStream) {
-        const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
-        bytes = new Uint8Array(await new Response(stream).arrayBuffer());
-        prefix = 'z';
+    // Mise en relation : le service public PeerJS associe le code de salle à l'hôte, puis les
+    // deux navigateurs se connectent directement l'un à l'autre.
+    const PEERJS_URL = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js';
+    const PEERJS_INTEGRITY = 'sha384-x0YgkOr/3UOZP2CRDxGW9e0Q+2Qjyr3uJrm4xU32Y7ZCNAo7Cc7bjhrZMi/dwczu';
+    const ROOM_PREFIX = 'pinceau-de-guerre-salle-';
+    const ROOM_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';  // Sans 0/O ni 1/I/L, faciles à confondre
+    const ROOM_CODE_LENGTH = 4;
+    const CONNECT_TIMEOUT_MS = 20000;
+    // Serveurs STUN publics : ils aident chaque navigateur à découvrir son adresse sur internet.
+    // Les relais intégrés à PeerJS ne répondent plus : on ne les interroge pas.
+    // Pour les réseaux qui bloquent la connexion directe, ajouter ici un serveur relais (TURN),
+    // par exemple { urls: 'turn:…', username: '…', credential: '…' }.
+    const RELAY_SERVERS = [];
+    const ICE_SERVERS = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      ...RELAY_SERVERS
+    ];
+    let peerLibraryPromise = null;
+
+    function loadPeerLibrary() {
+      if (window.Peer) return Promise.resolve();
+      if (!peerLibraryPromise) {
+        peerLibraryPromise = new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = PEERJS_URL;
+          script.integrity = PEERJS_INTEGRITY;
+          script.crossOrigin = 'anonymous';
+          script.onload = () => (window.Peer ? resolve() : reject(new Error('peerjs')));
+          script.onerror = () => {
+            peerLibraryPromise = null;
+            reject(new Error('peerjs'));
+          };
+          document.head.appendChild(script);
+        });
       }
-      let binary = '';
-      for (const b of bytes) binary += String.fromCharCode(b);
-      return prefix + btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      return peerLibraryPromise;
     }
 
-    async function decodeSignal(code) {
-      const clean = code.trim().replace(/\s+/g, '');
-      const body = clean.slice(1).replace(/-/g, '+').replace(/_/g, '/');
-      const binary = atob(body);
-      let bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-      if (clean[0] === 'z') {
-        const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-        bytes = new Uint8Array(await new Response(stream).arrayBuffer());
-      }
-      const parsed = JSON.parse(new TextDecoder().decode(bytes));
-      return { type: parsed.t, sdp: parsed.s };
+    function randomRoomCode() {
+      const values = new Uint32Array(ROOM_CODE_LENGTH);
+      crypto.getRandomValues(values);
+      return Array.from(values, (v) => ROOM_ALPHABET[v % ROOM_ALPHABET.length]).join('');
     }
 
-    function createPeer() {
-      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-      pc.addEventListener('connectionstatechange', () => {
-        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') netHandleDisconnect();
+    function normalizeRoomCode(text) {
+      return String(text || '').toUpperCase()
+        .split('').filter((c) => ROOM_ALPHABET.includes(c)).join('')
+        .slice(0, ROOM_CODE_LENGTH);
+    }
+
+    // Ouvre une connexion au service de mise en relation, avec un identifiant choisi ou non
+    function openPeer(id) {
+      return new Promise((resolve, reject) => {
+        const options = { debug: 0, config: { iceServers: ICE_SERVERS } };
+        const peer = id ? new window.Peer(id, options) : new window.Peer(options);
+        let opened = false;
+        peer.on('open', () => {
+          opened = true;
+          resolve(peer);
+        });
+        peer.on('error', (err) => {
+          if (!opened) {
+            try { peer.destroy(); } catch (e) {}
+            reject(err);
+          } else if (net.onPeerError) {
+            net.onPeerError(err);
+          }
+        });
       });
-      return pc;
     }
 
-    function waitForIce(pc) {
-      if (pc.iceGatheringState === 'complete') return Promise.resolve();
-      return new Promise((resolve) => {
-        const finish = () => {
-          pc.removeEventListener('icegatheringstatechange', check);
-          resolve();
-        };
-        const check = () => {
-          if (pc.iceGatheringState === 'complete') finish();
-        };
-        pc.addEventListener('icegatheringstatechange', check);
-        setTimeout(finish, 4000);
+    function attachConnection(conn) {
+      conn.on('open', () => {
+        if (conn.label === 'snap') net.snap = conn.dataChannel;
+        else net.control = conn.dataChannel;
+        bindChannels();
       });
     }
 
@@ -7479,8 +7520,8 @@
       if (net.control) {
         net.control.onmessage = (e) => netHandleMessage(JSON.parse(e.data));
         net.control.onclose = netHandleDisconnect;
-        net.control.onopen = () => netHandleOpen();
         if (net.control.readyState === 'open') netHandleOpen();
+        else net.control.onopen = () => netHandleOpen();
       }
       if (net.snap) {
         net.snap.binaryType = 'arraybuffer';
@@ -7488,40 +7529,84 @@
       }
     }
 
-    async function netHostCreateOffer() {
+    async function netHostOpenRoom() {
       netClose();
+      await loadPeerLibrary();
+      let peer = null;
+      let code = '';
+      for (let attempt = 0; attempt < 6 && !peer; attempt++) {
+        code = randomRoomCode();
+        try {
+          peer = await openPeer(ROOM_PREFIX + code);
+        } catch (err) {
+          if (err.type !== 'unavailable-id') throw err;
+        }
+      }
+      if (!peer) throw new Error('unavailable-id');
+      net.peer = peer;
       net.role = 'pending-host';
-      net.pc = createPeer();
-      net.control = net.pc.createDataChannel('control', { ordered: true });
-      net.snap = net.pc.createDataChannel('snap', { ordered: false, maxRetransmits: 0 });
-      bindChannels();
-      await net.pc.setLocalDescription(await net.pc.createOffer());
-      await waitForIce(net.pc);
-      return encodeSignal(net.pc.localDescription);
-    }
-
-    async function netHostAcceptAnswer(code) {
-      await net.pc.setRemoteDescription(await decodeSignal(code));
-    }
-
-    async function netGuestAcceptOffer(code) {
-      netClose();
-      net.role = 'pending-guest';
-      net.pc = createPeer();
-      net.pc.addEventListener('datachannel', (e) => {
-        if (e.channel.label === 'control') net.control = e.channel;
-        else net.snap = e.channel;
-        bindChannels();
+      net.roomCode = code;
+      peer.on('connection', (conn) => {
+        // Une seule place de Titan : les connexions suivantes sont refusées
+        if (net.guestPeerId && conn.peer !== net.guestPeerId) {
+          conn.on('open', () => conn.close());
+          return;
+        }
+        net.guestPeerId = conn.peer;
+        setDuoStatus('duoHostStatus', '🗿 Le Titan arrive…');
+        attachConnection(conn);
       });
-      await net.pc.setRemoteDescription(await decodeSignal(code));
-      await net.pc.setLocalDescription(await net.pc.createAnswer());
-      await waitForIce(net.pc);
-      return encodeSignal(net.pc.localDescription);
+      // Le service de mise en relation peut couper une salle inactive : on se reconnecte
+      peer.on('disconnected', () => {
+        if (!net.connected && net.peer === peer && !peer.destroyed) {
+          try { peer.reconnect(); } catch (err) {}
+        }
+      });
+      return code;
+    }
+
+    function netGuestJoinRoom(code) {
+      return new Promise(async (resolve, reject) => {
+        netClose();
+        let peer;
+        try {
+          await loadPeerLibrary();
+          peer = await openPeer(null);
+        } catch (err) {
+          reject(err);
+          return;
+        }
+        net.peer = peer;
+        net.role = 'pending-guest';
+        const timer = setTimeout(() => {
+          net.onPeerError = null;
+          reject({ type: 'timeout' });
+        }, CONNECT_TIMEOUT_MS);
+        net.onConnected = () => {
+          clearTimeout(timer);
+          net.onPeerError = null;
+          resolve();
+        };
+        net.onPeerError = (err) => {
+          if (err.type === 'peer-unavailable' || err.type === 'network' || err.type === 'server-error') {
+            clearTimeout(timer);
+            net.onPeerError = null;
+            reject(err);
+          }
+        };
+        const target = ROOM_PREFIX + code;
+        attachConnection(peer.connect(target, { label: 'control', serialization: 'raw', reliable: true }));
+        attachConnection(peer.connect(target, { label: 'snap', serialization: 'raw', reliable: false }));
+      });
     }
 
     function netHandleOpen() {
       if (net.connected) return;
       net.connected = true;
+      if (net.onConnected) {
+        net.onConnected();
+        net.onConnected = null;
+      }
       if (net.role === 'pending-host') {
         net.role = 'host';
         document.getElementById('duoModal').classList.remove('open');
@@ -7537,15 +7622,33 @@
 
     function netClose() {
       if (net.control) net.control.onclose = null;
-      if (net.pc) {
-        try { net.pc.close(); } catch (err) {}
+      if (net.peer) {
+        try { net.peer.destroy(); } catch (err) {}
       }
-      net.pc = null;
+      net.peer = null;
       net.control = null;
       net.snap = null;
       net.connected = false;
       net.role = null;
+      net.roomCode = '';
+      net.guestPeerId = null;
+      net.onConnected = null;
+      net.onPeerError = null;
       net.events.length = 0;
+    }
+
+    function netErrorMessage(err) {
+      const type = err && err.type;
+      if (type === 'peer-unavailable') return "Aucune salle ne porte ce code. Vérifiez-le auprès du Général : sa salle doit être ouverte.";
+      if (type === 'timeout') return "La connexion n'aboutit pas : l'un de vos réseaux bloque sans doute les connexions directes. Essayez depuis un autre réseau (une box à la maison plutôt qu'une 4G ou un réseau d'entreprise).";
+      if (type === 'browser-incompatible') return "Ce navigateur ne permet pas de jouer en ligne.";
+      if (err && err.message === 'peerjs') return "Impossible de charger le module en ligne. Vérifiez votre connexion internet.";
+      return "Le service de mise en relation ne répond pas. Réessayez dans un instant.";
+    }
+
+    function setDuoStatus(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
     }
 
     function netHandleDisconnect() {
@@ -7882,14 +7985,15 @@
     }
 
     async function copyToClipboard(text, btn) {
+      const label = btn.dataset.label || btn.textContent;
+      btn.dataset.label = label;
       try {
         await navigator.clipboard.writeText(text);
-        const label = btn.textContent;
-        btn.textContent = '✓ COPIÉ';
-        setTimeout(() => { btn.textContent = label; }, 1400);
+        btn.textContent = '✓ LIEN COPIÉ';
       } catch (err) {
-        btn.textContent = 'COPIEZ LE TEXTE À LA MAIN';
+        btn.textContent = text;
       }
+      setTimeout(() => { btn.textContent = label; }, 2500);
     }
 
     document.getElementById('titleDuoBtn').addEventListener('click', () => {
@@ -7911,60 +8015,88 @@
     document.getElementById('duoHostBtn').addEventListener('click', (e) => {
       confirmIfProgress(e.currentTarget, '⚠️ CONFIRMER : EFFACER LA PARTIE ?', async () => {
         setDuoStep('host');
-        const field = document.getElementById('duoHostCode');
-        const linkField = document.getElementById('duoHostLink');
-        field.value = 'Préparation de la connexion…';
-        linkField.value = '';
+        const codeEl = document.getElementById('duoRoomCode');
+        codeEl.textContent = '····';
+        setDuoStatus('duoHostStatus', 'Ouverture de la salle…');
         try {
-          const code = await netHostCreateOffer();
-          field.value = code;
-          linkField.value = `${location.origin}${location.pathname}#duo=${code}`;
+          const code = await netHostOpenRoom();
+          codeEl.textContent = code;
+          setDuoStatus('duoHostStatus', "⏳ En attente du Titan… La partie démarre dès qu'il entre le code.");
         } catch (err) {
-          field.value = "Impossible de préparer la connexion sur ce navigateur.";
+          codeEl.textContent = '····';
+          setDuoStatus('duoHostStatus', netErrorMessage(err));
         }
       });
     });
-    document.getElementById('duoJoinBtn').addEventListener('click', () => setDuoStep('join'));
-    document.getElementById('duoHostAcceptBtn').addEventListener('click', async () => {
-      const status = document.getElementById('duoHostStatus');
-      status.textContent = 'Connexion en cours…';
-      try {
-        await netHostAcceptAnswer(document.getElementById('duoHostAnswer').value);
-      } catch (err) {
-        status.textContent = "Ce code de réponse n'est pas valide.";
+
+    document.getElementById('duoShareBtn').addEventListener('click', async (e) => {
+      if (!net.roomCode) return;
+      const link = `${location.origin}${location.pathname}#salle=${net.roomCode}`;
+      const text = `Rejoins ma partie de Pinceau de Guerre avec le code ${net.roomCode} : ${link}`;
+      if (isTouchDevice && navigator.share) {
+        try { await navigator.share({ title: 'Pinceau de Guerre', text, url: link }); } catch (err) {}
+        return;
       }
-    });
-    async function guestAnswerFromCode(code) {
-      const output = document.getElementById('duoGuestAnswer');
-      const status = document.getElementById('duoGuestStatus');
-      output.value = 'Préparation de la réponse…';
-      status.textContent = '';
-      try {
-        output.value = await netGuestAcceptOffer(code);
-        status.textContent = "Envoyez ce code au Général : la partie démarrera dès qu'il l'aura collé.";
-      } catch (err) {
-        output.value = '';
-        status.textContent = "Ce code d'invitation n'est pas valide.";
-      }
-    }
-    document.getElementById('duoGuestAnswerBtn').addEventListener('click', () => {
-      guestAnswerFromCode(document.getElementById('duoGuestOffer').value);
-    });
-    document.querySelectorAll('[data-copy]').forEach((btn) => {
-      btn.addEventListener('click', () => copyToClipboard(document.getElementById(btn.getAttribute('data-copy')).value, btn));
-    });
-    document.querySelectorAll('[data-duo-step]').forEach((btn) => {
-      btn.addEventListener('click', () => setDuoStep(btn.getAttribute('data-duo-step')));
+      copyToClipboard(link, e.currentTarget);
     });
 
+    document.getElementById('duoJoinBtn').addEventListener('click', () => {
+      setDuoStep('join');
+      setDuoStatus('duoGuestStatus', '');
+      const input = document.getElementById('duoJoinCode');
+      input.value = '';
+      setTimeout(() => input.focus(), 50);
+    });
+
+    let joinInProgress = false;
+    async function joinRoom() {
+      const input = document.getElementById('duoJoinCode');
+      const code = normalizeRoomCode(input.value);
+      input.value = code;
+      if (code.length < ROOM_CODE_LENGTH || joinInProgress) return;
+      joinInProgress = true;
+      setDuoStatus('duoGuestStatus', 'Connexion à la salle ' + code + '…');
+      try {
+        await netGuestJoinRoom(code);
+      } catch (err) {
+        netClose();
+        setDuoStatus('duoGuestStatus', netErrorMessage(err));
+      }
+      joinInProgress = false;
+    }
+
+    document.getElementById('duoJoinCode').addEventListener('input', (e) => {
+      const code = normalizeRoomCode(e.target.value);
+      e.target.value = code;
+      if (code.length === ROOM_CODE_LENGTH) joinRoom();
+    });
+    document.getElementById('duoJoinCode').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') joinRoom();
+    });
+    document.getElementById('duoJoinGoBtn').addEventListener('click', joinRoom);
+
+    document.querySelectorAll('[data-duo-step]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        // Revenir au menu ferme la salle en attente
+        if (net.role === 'pending-host' || net.role === 'pending-guest') netClose();
+        setDuoStep(btn.getAttribute('data-duo-step'));
+      });
+    });
+
+    // Fermer la fenêtre du duo avant que l'autre joueur arrive ferme la salle
+    new MutationObserver(() => {
+      const closed = !document.getElementById('duoModal').classList.contains('open');
+      if (closed && (net.role === 'pending-host' || net.role === 'pending-guest')) netClose();
+    }).observe(document.getElementById('duoModal'), { attributes: true, attributeFilter: ['class'] });
+
     function openDuoLinkIfPresent() {
-      const match = /^#duo=(.+)$/.exec(location.hash);
+      const match = /^#salle=([A-Za-z0-9]{4})$/.exec(location.hash);
       if (!match) return;
       history.replaceState(null, '', location.pathname + location.search);
       setDuoStep('join');
-      document.getElementById('duoGuestOffer').value = match[1];
       document.getElementById('duoModal').classList.add('open');
-      guestAnswerFromCode(match[1]);
+      document.getElementById('duoJoinCode').value = normalizeRoomCode(match[1]);
+      joinRoom();
     }
 
     let lastTime = performance.now();
