@@ -13,7 +13,7 @@ Un jeu de stratégie où l'on dessine ses troupes au pinceau, où l'on trace ses
 * **🖼️ Le tableau de bataille :** les morts éclaboussent le terrain de peinture et les armées y laissent des coups de pinceau. À la fin de chaque vague, la bataille devient un tableau nommé et signé (« Requiem en Azur, n°12 »), à enregistrer ou à partager. Vos œuvres rejoignent votre galerie.
 * **🔥 Les sorts peints :** en combat, tracez au pinceau un trait de feu, de l'encre gelée ou une aquarelle de soin. Ils se débloquent et se renforcent dans la branche **Grimoire de guerre** de l'arbre de compétences : à vous de choisir entre une armée plus forte et des sorts plus puissants. Ils consomment une encre rare, qui se regagne lentement avec le temps et un peu à chaque ennemi vaincu. Chaque touche de peinture agit sur les unités les plus proches de son centre et s'épuise à mesure qu'elle les touche : un sort entame les premiers rangs, il ne traverse pas toute une armée. Le Feu et le Givre ne touchent que les ennemis, tandis que le Soin soigne tous vos alliés, Titan compris.
 * **⏸ La pause tactique :** figez la bataille et peignez vos sorts à tête reposée.
-* **⚖️ Des effets de zone qui s'épuisent :** l'orbe du Mage, le rayon et l'Onde de Choc du Titan, comme les sorts, frappent d'abord les ennemis les plus proches, puis s'arrêtent. On use l'ennemi rang après rang.
+* **⚖️ Des effets de zone qui s'épuisent :** l'orbe du Mage, le rayon, les balles et l'Onde de Choc du Titan, comme les sorts, frappent d'abord les ennemis les plus proches, puis s'arrêtent. On use l'ennemi rang après rang.
 * **📐 Des ennemis qui changent de forme :** phalange, coin, croissant, pinces, trois blocs, échelon. Adaptez votre formation avant l'assaut.
 * **🧭 Des cartes à lire :** chaque vague a son terrain, des cratères jusqu'à un vrai labyrinthe. Les armées contournent les obstacles, et les pointillés rouges annoncent la route probable de l'ennemi.
 * **🗺️ Un terrain qui grandit :** l'arène et l'armée s'agrandissent au fil des vagues, et la caméra dézoome pour en montrer l'ampleur.
@@ -62,19 +62,24 @@ Les cartes reviennent ensuite dans le même ordre, à partir de la vague 11.
 
 ## 🗿 Le mode Duo : Général et Titan
 
-Le **Général** joue comme en solo : il peint son armée, lance les vagues et trace ses sorts. Le **Titan** ne dirige qu'une seule unité, immense. Il enjambe murs et trous, frappe automatiquement ce qui l'entoure, et dépense ses **Âmes** pour évoluer. En duo, les vagues ennemies grossissent jusqu'à atteindre 3,2 fois leur taille en solo. Les ennemis en plus ne rapportent pas d'or au Général : ils nourrissent le Titan.
+Le **Général** joue comme en solo : il peint son armée, lance les vagues et trace ses sorts. Le **Titan** ne dirige qu'une seule unité, immense. Il enjambe murs et trous, frappe automatiquement ce qui l'entoure, tire avec ses canons, et dépense ses **Âmes** pour évoluer. En duo, les vagues ennemies grossissent jusqu'à atteindre 3,2 fois leur taille en solo. Les ennemis en plus ne rapportent pas d'or au Général : ils nourrissent le Titan.
 
-Son arbre est une constellation à cinq branches. Chaque compétence le fait grandir et ajoute une partie visible à son corps, ce qui permet de le repérer même très dézoomé.
+Son arbre est une constellation à six branches. Chaque compétence le fait grandir et ajoute une pièce visible à son corps : des plaques, des poings, des tourelles sur les épaules, puis des mitrailleuses, et un canon de lumière à l'avant. Chaque branche se termine par une compétence ultime.
 
-| Branche | Ce qu'elle apporte | Capacité |
+| Branche | Ce qu'elle apporte | Ultime |
 |---|---|---|
-| ❤️ Le Cœur | PV, régénération, carapace, vol de vie, peau qui résiste aux tirs, Seconde Vie | — |
-| 👊 Les Poings | Dégâts, coups en arc, frénésie, coups qui brisent les rangs | **J** Onde de Choc |
-| 👁️ Le Regard | Rayon plus long et plus perçant, faisceaux multiples, chasse aux élites, pétrification | **K** Regard Ardent |
-| 🦶 Les Jambes | Vitesse, piétinement, pas sismique, ruée, taille de Colosse | **L** Charge |
-| 👑 La Couronne | Aura qui renforce, soigne et protège l'armée, Terreur, Tribut en or | **I** Cri de Ralliement |
+| ❤️ Le Cœur | PV, régénération, carapace, vol de vie, résistance aux tirs, Bastion Vivant | Seconde Vie |
+| 👊 Les Poings | Dégâts, coups en arc, frénésie, Brise-Rangs, **J** Onde de Choc, Séisme | Coup Fatal |
+| 🔫 Les Canons | Des tourelles qui tirent seules, chaque balle s'arrête dans sa cible : cadence, canons en plus, balles perforantes, lunette, munitions lourdes | Mitrailleuse, avec des rafales régulières |
+| 🦶 Les Jambes | Vitesse, piétinement, pas sismique, **L** Charge, Ruée, Inarrêtable | Colosse |
+| 👑 La Couronne | Aura qui renforce, soigne et protège l'armée, Terreur, Tribut, **I** Cri de Ralliement | Majesté |
+| 👁️ Le Regard | **Branche ultime**, ouverte quand deux autres branches sont complètes : **K** Regard Ardent, Œil Perçant, Prisme, Réacteur, Œil du Chasseur, Regard Persistant | Regard Pétrifiant |
+
+Le Regard Ardent est un canon de lumière qui se charge pendant la bataille. Il est vide au début de chaque vague et met 45 secondes à se charger, moins avec le Réacteur. Pendant la charge, une jauge se remplit autour de l'objectif et des étincelles y convergent. Une fois prêt, l'objectif brille et le bouton K s'illumine.
 
 Le Titan grandit au rythme des ennemis : ses PV et ses dégâts suivent la vague, pour qu'il puisse rester au corps à corps. Son rayon ne traverse plus tout : chaque faisceau brûle les 3 premiers ennemis sur sa ligne, puis s'arrête.
+
+**Chacun son rôle :** en ligne, seul le joueur Titan commande le Titan et dépense ses âmes. Le Général voit l'arbre du Titan, sans pouvoir y toucher. Sur le même écran, les capacités du Titan passent uniquement par le clavier (J K L I), pour que la souris du Général ne les déclenche pas par erreur.
 
 **Sur le même écran :** le Général utilise la souris. Le Titan utilise ZQSD (WASD en QWERTY), J K L I pour ses capacités, et T pour son arbre. Sur tablette, le Titan a un joystick à l'écran.
 
