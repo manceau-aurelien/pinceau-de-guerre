@@ -1909,6 +1909,7 @@
         <div class="title-buttons-row">
           <button id="titleGalleryBtn" class="btn btn-secondary title-btn">🖼️ GALERIE</button>
           <button id="titleHelpBtn" class="btn btn-secondary title-btn">❓ COMMENT JOUER</button>
+          <button id="titleSaveBtn" class="btn btn-secondary title-btn" onclick="SaveGuard.openPanel()">💾 SAUVEGARDE</button>
         </div>
       </div>
       <div class="title-record" id="titleRecord"></div>
@@ -1965,6 +1966,12 @@
     </div>
   </div>
 
+  <script src="save-guard.js"></script>
+  <script>
+    // Sauvegarde renforcée : pas d'écrasement par un vieil onglet, copies de secours, export / import.
+    SaveGuard.protect({ app: 'pinceau-de-guerre', name: 'Pinceau de guerre', prefixes: ['pinceau-de-guerre-'],
+      canReload: () => { const t = document.getElementById('titleScreen'); return !!(t && t.classList.contains('open')); } });
+  </script>
   <script>
   (function() {
     'use strict';

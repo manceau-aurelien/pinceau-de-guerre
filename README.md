@@ -158,6 +158,17 @@ python -m http.server 8000
 
 ---
 
+## 💾 Sauvegarde
+
+La progression est enregistrée dans le navigateur, et protégée par `save-guard.js` :
+
+- le jeu demande au navigateur de ne pas effacer ses données de lui-même (stockage persistant) ;
+- un onglet resté ouvert avec une ancienne progression ne peut plus écraser une sauvegarde plus récente : il se recharge à la place ;
+- des copies de secours sont gardées, et rendues automatiquement si la sauvegarde est abîmée ;
+- avec le bouton **💾 Sauvegarde** de l'écran titre, **Exporter un fichier** ou **Copier le code** met la progression de côté, et **Importer** la restaure, y compris sur un autre appareil.
+
+Chaque adresse a sa propre sauvegarde : le fichier ouvert par double-clic, le site en ligne et, sur iPhone, l'icône de l'écran d'accueil ne partagent pas la même. Pour passer de l'une à l'autre, exportez puis importez.
+
 ## 🛠️ Sous le capot
 
 * **Rendu :** WebGL2 instancié pour les unités, avec repli automatique sur Canvas 2D. La peinture vit sur son propre canevas, déplacé par le GPU.
